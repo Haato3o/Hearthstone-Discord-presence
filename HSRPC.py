@@ -90,7 +90,6 @@ class HearthstoneRPC:
         self.message = None 
         self.timer = 0
         self.spammerBlock = False
-        self.spammerBlocker = False
 
     def stop(self):
         print('[HSRPC] Exiting...')
