@@ -3,6 +3,7 @@ import pypresence
 import time
 import psutil
 import sys
+import win32api
 
 gameTypes = {
     'FT_WILD' : 'Wild',
@@ -72,6 +73,8 @@ class HearthstoneRPC:
         self.timer = 0 # Time elapsed
         self.gamePID = None # Hearthstone pid
         self.pids = []
+        self.spammerBlock = False # Blocks repetitive messages
+        self.spammerBlocker = False # Blocks other repetitive messages 
 
     def reset(self):
         self.rpc = richPresence(clientID)
@@ -86,7 +89,9 @@ class HearthstoneRPC:
         self.playing = False 
         self.lastMessage = None 
         self.message = None 
-        self.timer = 0 
+        self.timer = 0
+        self.spammerBlock = False
+        self.spammerBlocker = False
 
     def stop(self):
         print('[HSRPC] Exiting...')
@@ -98,7 +103,7 @@ class HearthstoneRPC:
         sys.exit(0)
 
     def start(self):
-        print('[HSRPC] Initializing Hearhtsone Discord rich presence...')
+        print('[HSRPC] Initializing Hearthstone Discord rich presence...')
         print('[HSRPC] Done!')
         while True:
             self.scan_pids()
@@ -107,7 +112,15 @@ class HearthstoneRPC:
                 self.rpc.disconnect()
                 time.sleep(0.5)
                 self.reset()
+                if self.spammerBlocker == False:
+                    print('[HSRPC] Hearthstone is closed!')
+                    self.spammerBlocker = True
+                    self.spammerBlock = False
                 continue
+            if self.spammerBlock == False:
+                print('[HSRPC] Hearthstone is open! Stablishing connection to discord.')
+                self.spammerBlock = True
+                self.spammerBlocker = False
             self.rpc.start()
             self.scan_log()
             self.reader()
