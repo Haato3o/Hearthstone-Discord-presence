@@ -3,7 +3,6 @@ import pypresence
 import time
 import psutil
 import sys
-import win32api
 
 gameTypes = {
     'FT_WILD' : 'Wild',
