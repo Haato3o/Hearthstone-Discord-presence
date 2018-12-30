@@ -9,6 +9,15 @@ gameTypes = {
     'FT_STANDARD' : 'Standard'
 }
 
+stateComplem = { 
+    'GT_VS_AI' : 'Dungeon',
+    'GT_RANKED' : 'Ranked: []',
+    'GT_TAVERNBRAWL' : 'Tavern Brawl',
+    'GT_TUTORIAL' : 'Tutorial',
+    'GT_UNRANKED' : 'Casual: []',
+    'GT_ARENA' : 'Arena'
+}
+
 gameModes = {
     'GT_VS_AI' : 'Playing versus AI',
     'GT_RANKED' : 'Playing ranked',
@@ -108,12 +117,12 @@ class HearthstoneRPC:
             if self.gamePID not in self.pids:
                 ##print('Hearthstone not open')
                 self.rpc.disconnect()
-                time.sleep(5)
                 self.reset()
                 if self.spammerBlocker == False:
                     print('[HSRPC] Hearthstone is closed!')
                     self.spammerBlocker = True
                     self.spammerBlock = False
+                time.sleep(5)
                 continue
             if self.spammerBlock == False:
                 print('[HSRPC] Hearthstone is open! Stablishing connection to discord.')
@@ -126,7 +135,10 @@ class HearthstoneRPC:
             self.message = self.format_messages()
             ##print(self.message)
             try:
-                typeGame = gameTypes[self.type]
+                if self.playing or self.spectating:
+                    typeGame = stateComplem[self.gamemode].replace('[]', gameTypes[self.type])
+                else:
+                    typeGame = None
             except:
                 typeGame = None
             try:
@@ -153,12 +165,12 @@ class HearthstoneRPC:
 
     def format_messages(self):
         if self.spectating:
-            return f'Spectating friend'
+            return 'Spectating friend'
         elif self.playing:
             return f'{gameModes[self.gamemode]}'
         elif self.playing == False:
             self.type = None
-            return f'In main menu'
+            return 'Idle'
     
     def fix_logger(self, length):
         if length < self.lastLine:
