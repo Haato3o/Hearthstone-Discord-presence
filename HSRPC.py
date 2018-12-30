@@ -2,7 +2,7 @@ import re
 import pypresence
 import time
 import psutil
-
+import sys
 
 gameTypes = {
     'FT_WILD' : 'Wild',
@@ -54,7 +54,7 @@ class richPresence:
         self.RPC.update(**kwargs)
 
 
-class HearhstoneRPC:
+class HearthstoneRPC:
     def __init__(self):
         self.rpc = richPresence(clientID)
         #self.rpc.start()
@@ -88,7 +88,18 @@ class HearhstoneRPC:
         self.message = None 
         self.timer = 0 
 
+    def stop(self):
+        print('[HSRPC] Exiting...')
+        try:
+            self.rpc.close()
+        except:
+            pass
+        time.sleep(1)
+        sys.exit(0)
+
     def start(self):
+        print('[HSRPC] Initializing Hearhtsone Discord rich presence...')
+        print('[HSRPC] Done!')
         while True:
             self.scan_pids()
             if self.gamePID not in self.pids:
@@ -211,8 +222,7 @@ class HearhstoneRPC:
                 self.playerSpectated = line[index:maxIndex]
                 #print(f'Spectating {self.playerSpectated}')
             self.opponentName = None
-        
 
 if __name__ == '__main__':
-    rpc = HearhstoneRPC()
+    rpc = HearthstoneRPC()
     rpc.start()
