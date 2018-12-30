@@ -108,7 +108,7 @@ class HearthstoneRPC:
             if self.gamePID not in self.pids:
                 ##print('Hearthstone not open')
                 self.rpc.disconnect()
-                time.sleep(0.5)
+                time.sleep(5)
                 self.reset()
                 if self.spammerBlocker == False:
                     print('[HSRPC] Hearthstone is closed!')
