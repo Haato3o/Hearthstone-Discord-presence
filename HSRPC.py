@@ -132,7 +132,14 @@ class HearthstoneRPC:
                 largeImage = 'hearthstonelogo'
             if self.lastMessage != self.message:
                 self.timer = int(time.time())
-            self.rpc.update(details=self.message, state=typeGame, large_image=largeImage, large_text='Playing Hearthstone', start=self.timer)
+            self.rpc.update(
+                details=self.message, 
+                state=typeGame, 
+                large_image=largeImage, 
+                large_text='Playing Hearthstone',
+                small_image='usericon_white',
+                small_text=self.playerName.split('#')[0],
+                start=self.timer)
             time.sleep(15)
 
     def scan_pids(self):
@@ -216,11 +223,8 @@ class HearthstoneRPC:
         if self.spectating == False:
             self.playing = True
             self.playerSpectated = None
-            if line[index : maxIndex].strip('\n') == self.playerName:
-                return
-            else:
-                self.opponentName = line[index : maxIndex].strip('\n')
-            return
+            if self.playerName == None:
+                self.playerName = line[index : maxIndex].strip('\n')
         else:
             if line[index:maxIndex].strip('\n') != 'UNKNOWN HUMAN PLAYER' and self.playerSpectated == None:
                 self.playerSpectated = line[index:maxIndex]
