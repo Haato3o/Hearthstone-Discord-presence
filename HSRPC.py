@@ -9,6 +9,18 @@ gameTypes = {
     'FT_STANDARD' : 'Standard'
 }
 
+supportedHeroes = [
+    'HERO_01',
+    'HERO_02',
+    'HERO_03',
+    'HERO_04',
+    'HERO_05',
+    'HERO_06',
+    'HERO_06a',
+    'HERO_07',
+
+]
+
 stateComplem = { 
     'GT_VS_AI' : 'Dungeon',
     'GT_RANKED' : 'Ranked: []',
@@ -20,11 +32,11 @@ stateComplem = {
 
 gameModes = {
     'GT_VS_AI' : 'Playing versus AI',
-    'GT_RANKED' : 'Playing ranked',
+    'GT_RANKED' : 'Playing versus player',
     'GT_VS_FRIEND' : 'Playing versus a friend',
     'GT_TAVERNBRAWL' : 'Doing Tavern Brawl',
     'GT_TUTORIAL' : 'Doing tutorial',
-    'GT_UNRANKED' : 'Playing unranked',
+    'GT_UNRANKED' : 'Playing versus player',
     'GT_ARENA' : 'Doing Arena run'
 }
 
@@ -88,6 +100,8 @@ class HearthstoneRPC:
         self.pids = []
         self.spammerBlock = False # Blocks repetitive messages
         self.spammerBlocker = False # Blocks other repetitive messages 
+        self.playerID = 1
+        self.playerClass = None
 
     def stop(self):
         print('[HSRPC] Exiting...')
@@ -127,7 +141,7 @@ class HearthstoneRPC:
                 if self.playing == False:
                     largeImage = 'menu'
                 else:
-                    largeImage = images[self.gamemode]
+                    largeImage = self.playerClass.lower()
             except:
                 largeImage = 'hearthstonelogo'
             if self.lastMessage != self.message:
@@ -136,7 +150,7 @@ class HearthstoneRPC:
                 details=self.message, 
                 state=typeGame, 
                 large_image=largeImage, 
-                large_text='Playing Hearthstone',
+                large_text = self.get_class_name(),
                 small_image='usericon_white',
                 small_text=self.playerName.split('#')[0],
                 start=self.timer)
@@ -187,6 +201,8 @@ class HearthstoneRPC:
                 self.get_player_names(line)
             if re.search(r'Spectating', line) != None or re.search(r'Spectator Mode', line) != None:
                 self.spectate(line)
+            if re.search(fr'player={self.playerID}] CardID=HERO_', line) != None:
+                self.get_player_hero(line)
             if re.search(r'value=FINAL_GAMEOVER', line) != None:
                 self.detect_end(line)
             lastIndex += 1
@@ -215,6 +231,7 @@ class HearthstoneRPC:
 
     def detect_end(self, line):
         self.playing = False
+        self.playerClass = None
         return
 
     def get_player_names(self, line):
@@ -225,12 +242,34 @@ class HearthstoneRPC:
             self.playerSpectated = None
             if self.playerName == None:
                 self.playerName = line[index : maxIndex].strip('\n')
+            if line[index : maxIndex].strip('\n') == self.playerName:
+                self.playerID = line[re.search(r'PlayerID=', line).span()[1]]
         else:
             if line[index:maxIndex].strip('\n') != 'UNKNOWN HUMAN PLAYER' and self.playerSpectated == None:
                 self.playerSpectated = line[index:maxIndex]
             self.opponentName = None
 
+    def get_player_hero(self, line):
+        index = re.search(fr'player={self.playerID}] CardID=', line).span()[1]
+        self.playerClass = line[index : len(line)].strip('\n')
 
+    def get_class_name(self):
+        classes = {
+            'HERO_01' : 'Playing as warrior',
+            'HERO_02' : 'Playing as shaman',
+            'HERO_03' : 'Playing as rogue',
+            'HERO_04' : 'Playing as paladin',
+            'HERO_05' : 'Playing as hunter',
+            'HERO_06' : 'Playing as druid',
+            'HERO_07' : 'Playing as warlock',
+            'HERO_08' : 'Playing as mage',
+            'HERO_09' : 'Playing as priest',
+            None : 'Playing Hearthstone'
+        }
+        if self.playerClass != None:
+            return classes[self.playerClass[0:7]]
+        else:
+            return classes[self.playerClass]
 if __name__ == '__main__':
     rpc = HearthstoneRPC()
     try:
