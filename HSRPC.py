@@ -102,6 +102,7 @@ class HearthstoneRPC:
         self.spammerBlocker = False # Blocks other repetitive messages 
         self.playerID = 1
         self.playerClass = None
+        self.dungeonName = None
 
     def stop(self):
         print('[HSRPC] Exiting...')
@@ -170,7 +171,10 @@ class HearthstoneRPC:
         if self.spectating:
             return 'Spectating friend'
         elif self.playing:
-            return f'{gameModes[self.gamemode]}'
+            if self.gamemode == 'GT_VS_AI' and self.dungeonName != None:
+                return self.dungeonName
+            else:
+                return f'{gameModes[self.gamemode]}'
         elif self.playing == False:
             self.type = None
             return 'Idle'
@@ -201,7 +205,7 @@ class HearthstoneRPC:
                 self.get_player_names(line)
             if re.search(r'Spectating', line) != None or re.search(r'Spectator Mode', line) != None:
                 self.spectate(line)
-            if re.search(fr'player={self.playerID}] CardID=HERO_', line) != None:
+            if re.search(fr'player={self.playerID}] CardID=', line) != None and re.search(r'value=HERO_POWER', self.log[lineIndex+2]) == None:
                 self.get_player_hero(line)
             if re.search(r'value=FINAL_GAMEOVER', line) != None:
                 self.detect_end(line)
@@ -244,30 +248,46 @@ class HearthstoneRPC:
                 self.playerName = line[index : maxIndex].strip('\n')
             if line[index : maxIndex].strip('\n') == self.playerName:
                 self.playerID = line[re.search(r'PlayerID=', line).span()[1]]
+            elif line[index : maxIndex].strip('\n') != 'The Inkeeper':
+                self.opponentName = line[index : maxIndex].strip('\n')
+                self.dungeonName = None
         else:
             if line[index:maxIndex].strip('\n') != 'UNKNOWN HUMAN PLAYER' and self.playerSpectated == None:
                 self.playerSpectated = line[index:maxIndex]
             self.opponentName = None
+            self.dungeonName = None
 
     def get_player_hero(self, line):
         index = re.search(fr'player={self.playerID}] CardID=', line).span()[1]
-        self.playerClass = line[index : len(line)].strip('\n')
+        cardName = line[index : len(line)].strip('\n')
+        if cardName.startswith('HERO'):
+            self.playerClass = cardName
+        elif cardName.startswith('GILA'): # The witchwood dungeon
+            self.dungeonName = 'The Witchwood'
+            self.playerClass = cardName 
+        print(self.playerClass)
 
     def get_class_name(self):
         classes = {
-            'HERO_01' : 'Playing as warrior',
-            'HERO_02' : 'Playing as shaman',
-            'HERO_03' : 'Playing as rogue',
-            'HERO_04' : 'Playing as paladin',
-            'HERO_05' : 'Playing as hunter',
-            'HERO_06' : 'Playing as druid',
-            'HERO_07' : 'Playing as warlock',
-            'HERO_08' : 'Playing as mage',
-            'HERO_09' : 'Playing as priest',
+            'HERO_01' : 'Playing as Warrior',
+            'HERO_02' : 'Playing as Shaman',
+            'HERO_03' : 'Playing as Rogue',
+            'HERO_04' : 'Playing as Paladin',
+            'HERO_05' : 'Playing as Hunter',
+            'HERO_06' : 'Playing as Druid',
+            'HERO_07' : 'Playing as Warlock',
+            'HERO_08' : 'Playing as Mage',
+            'HERO_09' : 'Playing as Priest',
+            'GILA_500h3' : 'Playing as Tracker',
+            'GILA_600h' : 'Playing as Cannoneer',
+            'GILA_400h' : 'Playing as Houndmaster',
+            'GILA_900h' : 'Playing as Time-Tinker'
             None : 'Playing Hearthstone'
         }
-        if self.playerClass != None:
+        if self.playerClass != None and self.dungeonName == None:
             return classes[self.playerClass[0:7]]
+        elif self.playerClass != None and self.dungeonName != None:
+            return classes[self.playerClass]
         else:
             return classes[self.playerClass]
 if __name__ == '__main__':
