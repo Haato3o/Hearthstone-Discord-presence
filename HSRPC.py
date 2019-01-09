@@ -93,6 +93,7 @@ class HearthstoneRPC:
         self.playerID = 1
         self.playerClass = None
         self.dungeonName = None
+        self.dungeonBoss = None
 
     def stop(self):
         print('[HSRPC] Exiting...')
@@ -123,7 +124,10 @@ class HearthstoneRPC:
             self.message = self.format_messages()
             try:
                 if self.playing or self.spectating:
-                    typeGame = stateComplem[self.gamemode].replace('[]', gameTypes[self.type])
+                    if self.dungeonName != None:
+                        typeGame = self.dungeonBoss
+                    else:
+                        typeGame = stateComplem[self.gamemode].replace('[]', gameTypes[self.type])
                 else:
                     typeGame = None
             except:
@@ -132,10 +136,13 @@ class HearthstoneRPC:
                 if self.playing == False:
                     largeImage = 'menu'
                 else:
-                    largeImage = self.playerClass.lower()
+                    if self.playerClass != None and self.playerClass.startswith('TRLA'):
+                        largeImage = 'trla_209h'
+                    else:
+                        largeImage = self.playerClass.lower()
             except:
                 largeImage = 'hearthstonelogo'
-            if self.lastMessage != self.message:
+            if self.lastMessage != self.message or self.timer == None:
                 self.timer = int(time.time())
             self.rpc.update(
                 details=self.message, 
@@ -187,6 +194,9 @@ class HearthstoneRPC:
         lastIndex = self.lastLine
         for lineIndex in range(self.lastLine, len(self.log)):
             line = self.log[lineIndex]
+            if re.search(r'player=2] CardID=LOOTA_BOSS', line) != None and re.search(r'value=HERO\n', self.log[lineIndex+2]): # Kobolds and Catacombs
+                self.dungeonName = 'Kobolds & Catacombs'
+                self.get_boss_name(line)
             if re.search(r'GameType=', line) != None:
                 self.get_gamemode(line)
             if re.search(r'FormatType=', line) != None:
@@ -195,12 +205,19 @@ class HearthstoneRPC:
                 self.get_player_names(line)
             if re.search(r'Spectating', line) != None or re.search(r'Spectator Mode', line) != None:
                 self.spectate(line)
-            if re.search(fr'player={self.playerID}] CardID=', line) != None and re.search(r'value=HERO_POWER', self.log[lineIndex+2]) == None:
+            if re.search(fr'player={self.playerID}] CardID=', line) != None and re.search(r'value=HERO\n', self.log[lineIndex+2]) != None and re.search(r'value=PLAY', self.log[lineIndex+4]) != None:
                 self.get_player_hero(line)
             if re.search(r'value=FINAL_GAMEOVER', line) != None:
                 self.detect_end(line)
             lastIndex += 1
         self.lastLine = lastIndex
+
+    def get_boss_name(self, line):
+        index = re.search(r'entityName=', line).span()[1]
+        for letter in range(len(line)):
+            if line[letter+2:letter+5] == 'id=':
+                self.dungeonBoss = line[index:letter+1]
+                break
 
     def get_gamemode(self, line):
         index = re.search(r'GameType=', line).span()[1]
@@ -244,6 +261,7 @@ class HearthstoneRPC:
         else:
             if line[index:maxIndex].strip('\n') != 'UNKNOWN HUMAN PLAYER' and self.playerSpectated == None:
                 self.playerSpectated = line[index:maxIndex]
+            self.playerClass = None
             self.opponentName = None
             self.dungeonName = None
 
@@ -254,8 +272,11 @@ class HearthstoneRPC:
             self.playerClass = cardName
         elif cardName.startswith('GILA'): # The witchwood dungeon
             self.dungeonName = 'The Witchwood'
-            self.playerClass = cardName 
-        if debug: print(self.playerClass)
+            self.playerClass = cardName
+        elif cardName.startswith('TRLA'):
+            self.dungeonName = 'Rastakhan\'s Rumble'
+            self.playerClass = cardName
+        if debug: print(cardName)
 
     def get_class_name(self):
         classes = {
@@ -274,6 +295,8 @@ class HearthstoneRPC:
             'GILA_900h' : 'Playing as Time-Tinker',
             None : 'Playing Hearthstone'
         }
+        if self.playerClass != None and self.playerClass.startswith('TRLA'): # Rastakhan work around
+            return f'Playing as {self.playerClass.split("_")[2]}'
         if self.playerClass != None and self.dungeonName == None:
             return classes[self.playerClass[0:7]]
         elif self.playerClass != None and self.dungeonName != None:
