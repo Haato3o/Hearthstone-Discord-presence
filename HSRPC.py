@@ -269,7 +269,7 @@ class HearthstoneRPC:
             'GILA_500h3' : 'Playing as Tracker',
             'GILA_600h' : 'Playing as Cannoneer',
             'GILA_400h' : 'Playing as Houndmaster',
-            'GILA_900h' : 'Playing as Time-Tinker'
+            'GILA_900h' : 'Playing as Time-Tinker',
             None : 'Playing Hearthstone'
         }
         if self.playerClass != None and self.dungeonName == None:
