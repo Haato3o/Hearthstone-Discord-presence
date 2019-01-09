@@ -9,18 +9,6 @@ gameTypes = {
     'FT_STANDARD' : 'Standard'
 }
 
-supportedHeroes = [
-    'HERO_01',
-    'HERO_02',
-    'HERO_03',
-    'HERO_04',
-    'HERO_05',
-    'HERO_06',
-    'HERO_06a',
-    'HERO_07',
-
-]
-
 stateComplem = { 
     'GT_VS_AI' : 'Dungeon',
     'GT_RANKED' : 'Ranked: []',
