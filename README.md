@@ -19,3 +19,5 @@ Just open it with Python 3.6 (or greater) and let it running with your game open
 [Download]: <https://github.com/Haato3o/Hearthstone-Discord-presence/releases/tag/v2.1>
 [pypresence]: <https://github.com/qwertyquerty/pypresence>
 [psutil]: <https://github.com/giampaolo/psutil> 
+
+If you need help open an issue ticket or contact me on discord (Haato#0001)
