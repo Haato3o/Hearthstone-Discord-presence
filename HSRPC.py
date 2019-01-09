@@ -142,7 +142,7 @@ class HearthstoneRPC:
                 state=typeGame, 
                 large_image=largeImage, 
                 large_text = self.get_class_name(),
-                small_image='usericon_white',
+                small_image='nameicon',
                 small_text=self.playerName.split('#')[0],
                 start=self.timer)
             time.sleep(15)
