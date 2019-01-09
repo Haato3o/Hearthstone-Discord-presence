@@ -1,3 +1,4 @@
+version = 'v2.1'
 import re
 import pypresence
 import time
