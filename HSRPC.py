@@ -4,7 +4,7 @@ import time
 import psutil
 import sys
 
-debug = False
+debug = True
 
 gameTypes = {
     'FT_WILD' : 'Wild',
@@ -130,7 +130,7 @@ class HearthstoneRPC:
                         typeGame = stateComplem[self.gamemode].replace('[]', gameTypes[self.type])
                 else:
                     typeGame = None
-            except:
+            except Exception as e:
                 typeGame = None
             try:
                 if self.playing == False:
@@ -140,7 +140,7 @@ class HearthstoneRPC:
                         largeImage = 'trla_209h'
                     else:
                         largeImage = self.playerClass.lower()
-            except:
+            except Exception as e:
                 largeImage = 'hearthstonelogo'
             if self.lastMessage != self.message or self.timer == None:
                 self.timer = int(time.time())
@@ -194,8 +194,15 @@ class HearthstoneRPC:
         lastIndex = self.lastLine
         for lineIndex in range(self.lastLine, len(self.log)):
             line = self.log[lineIndex]
-            if re.search(r'player=2] CardID=LOOTA_BOSS', line) != None and re.search(r'value=HERO\n', self.log[lineIndex+2]): # Kobolds and Catacombs
+            if re.search(r'player=2] CardID=LOOTA_BOSS', line) != None and re.search(r'value=HERO\n', self.log[lineIndex+2]) != None: # Kobolds and Catacombs
                 self.dungeonName = 'Kobolds & Catacombs'
+                self.get_boss_name(line)
+            if re.search(r'player=2] CardID=BOTA_BOSS', line) != None and re.search(r'value=HERO\n', self.log[lineIndex+2]) != None: # The Boomsday Project
+                self.dungeonName = 'The Boomsday Project'
+                self.get_boss_name(line)
+            if re.search(r'player=2] CardID=TRLA', line) != None and re.search(r'value=HERO\n', self.log[lineIndex+2]) != None: # Rastakhan
+                self.get_boss_name(line)
+            if re.search(r'player=2] CardID=GILA_BOSS', line) != None and re.search(r'value=HERO\n', self.log[lineIndex+2]) != None: # The Witchwood
                 self.get_boss_name(line)
             if re.search(r'GameType=', line) != None:
                 self.get_gamemode(line)
@@ -205,7 +212,7 @@ class HearthstoneRPC:
                 self.get_player_names(line)
             if re.search(r'Spectating', line) != None or re.search(r'Spectator Mode', line) != None:
                 self.spectate(line)
-            if re.search(fr'player={self.playerID}] CardID=', line) != None and re.search(r'value=HERO\n', self.log[lineIndex+2]) != None and re.search(r'value=PLAY', self.log[lineIndex+4]) != None:
+            if re.search(fr'player={self.playerID}] CardID=', line) != None and re.search(r'value=HERO\n', self.log[lineIndex+2]) != None and (re.search(r'value=PLAY', self.log[lineIndex+4]) != None or re.search(r'value=PLAY', self.log[lineIndex+5]) != None):
                 self.get_player_hero(line)
             if re.search(r'value=FINAL_GAMEOVER', line) != None:
                 self.detect_end(line)
