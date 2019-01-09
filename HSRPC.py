@@ -4,6 +4,8 @@ import time
 import psutil
 import sys
 
+debug = False
+
 gameTypes = {
     'FT_WILD' : 'Wild',
     'FT_STANDARD' : 'Standard'
@@ -253,7 +255,7 @@ class HearthstoneRPC:
         elif cardName.startswith('GILA'): # The witchwood dungeon
             self.dungeonName = 'The Witchwood'
             self.playerClass = cardName 
-        print(self.playerClass)
+        if debug: print(self.playerClass)
 
     def get_class_name(self):
         classes = {
@@ -278,6 +280,7 @@ class HearthstoneRPC:
             return classes[self.playerClass]
         else:
             return classes[self.playerClass]
+
 if __name__ == '__main__':
     rpc = HearthstoneRPC()
     try:
