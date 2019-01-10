@@ -5,7 +5,7 @@ import time
 import psutil
 import sys
 
-debug = True
+debug = False
 
 gameTypes = {
     'FT_WILD' : 'Wild',
