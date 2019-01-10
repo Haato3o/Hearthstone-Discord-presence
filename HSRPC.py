@@ -1,11 +1,11 @@
-version = 'v2.1'
+version = 'v2.2'
 import re
 import pypresence
 import time
 import psutil
 import sys
 
-debug = False
+debug = True
 
 gameTypes = {
     'FT_WILD' : 'Wild',
@@ -123,6 +123,10 @@ class HearthstoneRPC:
             self.reader()
             self.lastMessage = self.message
             self.message = self.format_messages()
+            if self.playerName != None:
+                name = self.playerName.split('#')[0]
+            else:
+                name = None
             try:
                 if self.playing or self.spectating:
                     if self.dungeonName != None:
@@ -135,7 +139,10 @@ class HearthstoneRPC:
                 typeGame = None
             try:
                 if self.playing == False:
-                    largeImage = 'menu'
+                    if self.spectating:
+                        largeImage = self.playerClass.lower()
+                    else:
+                        largeImage = 'menu'
                 else:
                     if self.playerClass != None and self.playerClass.startswith('TRLA'):
                         largeImage = 'trla_209h'
@@ -151,7 +158,7 @@ class HearthstoneRPC:
                 large_image=largeImage, 
                 large_text = self.get_class_name(),
                 small_image='nameicon',
-                small_text=self.playerName.split('#')[0],
+                small_text= name,
                 start=self.timer)
             time.sleep(15)
 
@@ -244,6 +251,8 @@ class HearthstoneRPC:
             index = re.search(r'Begin Spectating', line).span()[1]+1
             maxIndex = index+3
             self.spectating = True
+            self.playerClass = None
+            self.dungeonBoss = None
         elif re.search(r'End', line):
             self.spectating = False
         return
@@ -258,9 +267,9 @@ class HearthstoneRPC:
         maxIndex = len(line)
         if self.spectating == False:
             self.playing = True
-            self.playerSpectated = None
-            if self.playerName == None:
+            if self.playerName == None and line[index : maxIndex].strip('\n') != self.playerSpectated:
                 self.playerName = line[index : maxIndex].strip('\n')
+                print(self.playerName)
             if line[index : maxIndex].strip('\n') == self.playerName:
                 self.playerID = line[re.search(r'PlayerID=', line).span()[1]]
             elif line[index : maxIndex].strip('\n') != 'The Inkeeper':
@@ -288,23 +297,23 @@ class HearthstoneRPC:
 
     def get_class_name(self):
         classes = {
-            'HERO_01' : 'Playing as Warrior',
-            'HERO_02' : 'Playing as Shaman',
-            'HERO_03' : 'Playing as Rogue',
-            'HERO_04' : 'Playing as Paladin',
-            'HERO_05' : 'Playing as Hunter',
-            'HERO_06' : 'Playing as Druid',
-            'HERO_07' : 'Playing as Warlock',
-            'HERO_08' : 'Playing as Mage',
-            'HERO_09' : 'Playing as Priest',
-            'GILA_500h3' : 'Playing as Tracker',
-            'GILA_600h' : 'Playing as Cannoneer',
-            'GILA_400h' : 'Playing as Houndmaster',
-            'GILA_900h' : 'Playing as Time-Tinker',
+            'HERO_01' : 'Warrior',
+            'HERO_02' : 'Shaman',
+            'HERO_03' : 'Rogue',
+            'HERO_04' : 'Paladin',
+            'HERO_05' : 'Hunter',
+            'HERO_06' : 'Druid',
+            'HERO_07' : 'Warlock',
+            'HERO_08' : 'Mage',
+            'HERO_09' : 'Priest',
+            'GILA_500h3' : 'Tracker',
+            'GILA_600h' : 'Cannoneer',
+            'GILA_400h' : 'Houndmaster',
+            'GILA_900h' : 'Time-Tinker',
             None : 'Playing Hearthstone'
         }
         if self.playerClass != None and self.playerClass.startswith('TRLA'): # Rastakhan work around
-            return f'Playing as {self.playerClass.split("_")[2]}'
+            return f'{self.playerClass.split("_")[2]}'
         if self.playerClass != None and self.dungeonName == None:
             return classes[self.playerClass[0:7]]
         elif self.playerClass != None and self.dungeonName != None:
