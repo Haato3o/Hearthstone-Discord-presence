@@ -1,6 +1,6 @@
 [![pypresence](https://img.shields.io/badge/using-pypresence-00bb88.svg?style=for-the-badge&logo=discord&logoWidth=20)](https://github.com/qwertyquerty/pypresence)
 
-# Hearthstone-Discord-Presence v2.1
+# Hearthstone-Discord-Presence v2.2
 Hearthstone Discord rich presence made in python
 
 # How to use
@@ -16,7 +16,7 @@ Just open it with Python 3.6 (or greater) and let it running with your game open
 [Download] the latest version of HSRPC.exe, open it and let it running with your game open.
 
 
-[Download]: <https://github.com/Haato3o/Hearthstone-Discord-presence/releases/tag/v2.1>
+[Download]: <https://github.com/Haato3o/Hearthstone-Discord-presence/releases/>
 [pypresence]: <https://github.com/qwertyquerty/pypresence>
 [psutil]: <https://github.com/giampaolo/psutil> 
 
