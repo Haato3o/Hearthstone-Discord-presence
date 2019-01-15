@@ -92,9 +92,11 @@ class HearthstoneRPC:
         self.spammerBlock = False # Blocks repetitive messages
         self.spammerBlocker = False # Blocks other repetitive messages 
         self.playerID = 1
+        self.spectatePlayerID = 0
         self.playerClass = None
         self.dungeonName = None
         self.dungeonBoss = None
+        self.wasSpectating = False
 
     def stop(self):
         print('[HSRPC] Exiting...')
@@ -220,9 +222,13 @@ class HearthstoneRPC:
                 self.get_player_names(line)
             if re.search(r'Spectating', line) != None or re.search(r'Spectator Mode', line) != None:
                 self.spectate(line)
-            if re.search(fr'player={self.playerID}] CardID=', line) != None and re.search(r'value=HERO\n', self.log[lineIndex+2]) != None and (re.search(r'value=PLAY', self.log[lineIndex+4]) != None or re.search(r'value=PLAY', self.log[lineIndex+5]) != None):
-                self.get_player_hero(line)
-            if re.search(r'value=FINAL_GAMEOVER', line) != None:
+            if self.spectating:
+                if re.search(fr'player={self.spectatePlayerID}] CardID=', line) != None and re.search(r'value=HERO\n', self.log[lineIndex+2]) != None and (re.search(r'value=PLAY', self.log[lineIndex+4]) != None or re.search(r'value=PLAY', self.log[lineIndex+5]) != None):
+                    self.get_player_hero(line)
+            else:
+                if re.search(fr'player={self.playerID}] CardID=', line) != None and re.search(r'value=HERO\n', self.log[lineIndex+2]) != None and (re.search(r'value=PLAY', self.log[lineIndex+4]) != None or re.search(r'value=PLAY', self.log[lineIndex+5]) != None):
+                    self.get_player_hero(line)
+            if re.search(r'tag=STEP value=FINAL_GAMEOVER', line) != None:
                 self.detect_end(line)
             lastIndex += 1
         self.lastLine = lastIndex
@@ -254,12 +260,14 @@ class HearthstoneRPC:
             self.playerClass = None
             self.dungeonBoss = None
         elif re.search(r'End', line):
+            self.wasSpectating = True
             self.spectating = False
         return
 
     def detect_end(self, line):
         self.playing = False
         self.playerClass = None
+        if debug: print('Game is over!')
         return
 
     def get_player_names(self, line):
@@ -268,8 +276,13 @@ class HearthstoneRPC:
         if self.spectating == False:
             self.playing = True
             if self.playerName == None and line[index : maxIndex].strip('\n') != self.playerSpectated:
-                self.playerName = line[index : maxIndex].strip('\n')
-                print(self.playerName)
+                if self.wasSpectating:
+                    if line[re.search(r'PlayerID=', line).span()[1]] == '2':
+                        self.playerName = line[index : maxIndex].strip('\n')
+                    else:
+                        pass
+                else:
+                    self.playerName = line[index : maxIndex].strip('\n')
             if line[index : maxIndex].strip('\n') == self.playerName:
                 self.playerID = line[re.search(r'PlayerID=', line).span()[1]]
             elif line[index : maxIndex].strip('\n') != 'The Inkeeper':
@@ -277,13 +290,22 @@ class HearthstoneRPC:
                 self.dungeonName = None
         else:
             if line[index:maxIndex].strip('\n') != 'UNKNOWN HUMAN PLAYER' and self.playerSpectated == None:
-                self.playerSpectated = line[index:maxIndex]
+                self.playerSpectated = line[index:maxIndex].strip('\n')
+                if debug: print(line)
+            if self.playerSpectated == line[index:maxIndex].strip('\n') and self.spectatePlayerID != line[re.search(r'PlayerID=', line).span()[1]]:
+                self.spectatePlayerID = line[re.search(r'PlayerID=', line).span()[1]]
+            if debug: print(self.spectatePlayerID)
+            if debug: print(self.playerSpectated)
+            self.wasSpectating = False
             self.playerClass = None
             self.opponentName = None
             self.dungeonName = None
 
     def get_player_hero(self, line):
-        index = re.search(fr'player={self.playerID}] CardID=', line).span()[1]
+        if self.spectating:
+            index = re.search(fr'player={self.spectatePlayerID}] CardID=', line).span()[1]
+        else:
+            index = re.search(fr'player={self.playerID}] CardID=', line).span()[1]
         cardName = line[index : len(line)].strip('\n')
         if cardName.startswith('HERO'):
             self.playerClass = cardName
@@ -327,4 +349,6 @@ if __name__ == '__main__':
         rpc.start()
     except KeyboardInterrupt:
         rpc.stop()
+    except pypresence.exceptions.InvalidID:
+        print('[HSRPC] Discord client id not valid! Check if Discord is open.')
     
