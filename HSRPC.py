@@ -1,4 +1,4 @@
-version = 'v2.2'
+version = 'v2.4'
 import re
 import pypresence
 import time
@@ -106,7 +106,7 @@ class HearthstoneRPC:
     def start(self):
         print('[HSRPC] Initializing Hearthstone Discord rich presence...')
         while True:
-            self.scan_pids()
+            self.pidScanner()
             if self.gamePID not in self.pids:
                 self.rpc.clear()
                 if self.spammerBlocker == False:
@@ -121,14 +121,16 @@ class HearthstoneRPC:
                 self.spammerBlock = True
                 self.spammerBlocker = False
             self.rpc.start()
-            self.scan_log()
-            self.reader()
+            self.gameScanner()
+            self.events()
             self.lastMessage = self.message
             self.message = self.format_messages()
             if self.playerName != None:
                 name = self.playerName.split('#')[0]
+                iconimg = 'nameicon'
             else:
                 name = None
+                iconimg = None
             try:
                 if self.playing or self.spectating:
                     if self.dungeonName != None:
@@ -151,20 +153,20 @@ class HearthstoneRPC:
                     else:
                         largeImage = self.playerClass.lower()
             except Exception as e:
-                largeImage = 'hearthstonelogo'
+                largeImage = 'menu'
             if self.lastMessage != self.message or self.timer == None:
                 self.timer = int(time.time())
             self.rpc.update(
                 details=self.message, 
                 state=typeGame, 
                 large_image=largeImage, 
-                large_text = self.get_class_name(),
-                small_image='nameicon',
+                large_text = self.getClassName(),
+                small_image=iconimg,
                 small_text= name,
                 start=self.timer)
             time.sleep(15)
 
-    def scan_pids(self):
+    def pidScanner(self):
         for programs in psutil.process_iter():
             if programs.pid not in self.pids:
                 self.pids.append(programs.pid)
@@ -186,67 +188,67 @@ class HearthstoneRPC:
             self.type = None
             return 'Idle'
     
-    def fix_logger(self, length):
+    def resetLogger(self, length):
         if length < self.lastLine:
             self.lastLine = 0
 
-    def scan_log(self):
+    def gameScanner(self):
         try:
             logger = open(r'C:\Program Files (x86)\Hearthstone\Logs\Power.log', 'r')
         except FileNotFoundError:
             print('[HSRPC] Power.log file not found!')
             self.stop()
         self.log = logger.readlines()
-        self.fix_logger(len(self.log))
+        self.resetLogger(len(self.log))
         logger.close()
     
-    def reader(self):
+    def events(self):
         lastIndex = self.lastLine
         for lineIndex in range(self.lastLine, len(self.log)):
             line = self.log[lineIndex]
             if re.search(r'player=2] CardID=LOOTA_BOSS', line) != None and re.search(r'value=HERO\n', self.log[lineIndex+2]) != None: # Kobolds and Catacombs
                 self.dungeonName = 'Kobolds & Catacombs'
-                self.get_boss_name(line)
+                self.getBossName(line)
             if re.search(r'player=2] CardID=BOTA_BOSS', line) != None and re.search(r'value=HERO\n', self.log[lineIndex+2]) != None: # The Boomsday Project
                 self.dungeonName = 'The Boomsday Project'
-                self.get_boss_name(line)
+                self.getBossName(line)
             if re.search(r'player=2] CardID=TRLA', line) != None and re.search(r'value=HERO\n', self.log[lineIndex+2]) != None: # Rastakhan
-                self.get_boss_name(line)
+                self.getBossName(line)
             if re.search(r'player=2] CardID=GILA_BOSS', line) != None and re.search(r'value=HERO\n', self.log[lineIndex+2]) != None: # The Witchwood
-                self.get_boss_name(line)
+                self.getBossName(line)
             if re.search(r'GameType=', line) != None:
-                self.get_gamemode(line)
+                self.getGamemode(line)
             if re.search(r'FormatType=', line) != None:
-                self.get_type(line)
+                self.getGameType(line)
             if re.search(r'PlayerName=', line) != None:
-                self.get_player_names(line)
+                self.getPlayerNames(line)
             if re.search(r'Spectating', line) != None or re.search(r'Spectator Mode', line) != None:
                 self.spectate(line)
             if self.spectating:
                 if re.search(fr'player={self.spectatePlayerID}] CardID=', line) != None and re.search(r'value=HERO\n', self.log[lineIndex+2]) != None and (re.search(r'value=PLAY', self.log[lineIndex+4]) != None or re.search(r'value=PLAY', self.log[lineIndex+5]) != None):
-                    self.get_player_hero(line)
+                    self.getPlayerHero(line)
             else:
                 if re.search(fr'player={self.playerID}] CardID=', line) != None and re.search(r'value=HERO\n', self.log[lineIndex+2]) != None and (re.search(r'value=PLAY', self.log[lineIndex+4]) != None or re.search(r'value=PLAY', self.log[lineIndex+5]) != None):
-                    self.get_player_hero(line)
+                    self.getPlayerHero(line)
             if re.search(r'tag=STEP value=FINAL_GAMEOVER', line) != None:
-                self.detect_end(line)
+                self.detectGameOver(line)
             lastIndex += 1
         self.lastLine = lastIndex
 
-    def get_boss_name(self, line):
+    def getBossName(self, line):
         index = re.search(r'entityName=', line).span()[1]
         for letter in range(len(line)):
             if line[letter+2:letter+5] == 'id=':
                 self.dungeonBoss = line[index:letter+1]
                 break
 
-    def get_gamemode(self, line):
+    def getGamemode(self, line):
         index = re.search(r'GameType=', line).span()[1]
         maxIndex = len(line)
         self.gamemode = line[index : maxIndex].strip('\n')
         return
 
-    def get_type(self, line):
+    def getGameType(self, line):
         index = re.search(r'FormatType=', line).span()[1]
         maxIndex = len(line)
         self.type = line[index : maxIndex].strip('\n')
@@ -264,36 +266,37 @@ class HearthstoneRPC:
             self.spectating = False
         return
 
-    def detect_end(self, line):
+    def detectGameOver(self, line):
         self.playing = False
         self.playerClass = None
         if debug: print('Game is over!')
         return
 
-    def get_player_names(self, line):
+    def getPlayerNames(self, line):
         index = re.search(r'PlayerName=', line).span()[1]
         maxIndex = len(line)
+        playerName = line[index : maxIndex].strip('\n')
+        playerId = line[re.search(r'PlayerID=', line).span()[1]]
         if self.spectating == False:
             self.playing = True
-            if self.playerName == None and line[index : maxIndex].strip('\n') != self.playerSpectated:
+            if self.playerName == None and playerName != self.playerSpectated:
                 if self.wasSpectating:
-                    if line[re.search(r'PlayerID=', line).span()[1]] == '2':
-                        self.playerName = line[index : maxIndex].strip('\n')
+                    if playerId == '2':
+                        self.playerName = playerName
                     else:
                         pass
                 else:
                     self.playerName = line[index : maxIndex].strip('\n')
-            if line[index : maxIndex].strip('\n') == self.playerName:
-                self.playerID = line[re.search(r'PlayerID=', line).span()[1]]
-            elif line[index : maxIndex].strip('\n') != 'The Inkeeper':
+            if playerName == self.playerName:
+                self.playerID = playerId
+            elif playerName != 'The Inkeeper':
                 self.opponentName = line[index : maxIndex].strip('\n')
                 self.dungeonName = None
         else:
-            if line[index:maxIndex].strip('\n') != 'UNKNOWN HUMAN PLAYER' and self.playerSpectated == None:
-                self.playerSpectated = line[index:maxIndex].strip('\n')
-                if debug: print(line)
-            if self.playerSpectated == line[index:maxIndex].strip('\n') and self.spectatePlayerID != line[re.search(r'PlayerID=', line).span()[1]]:
-                self.spectatePlayerID = line[re.search(r'PlayerID=', line).span()[1]]
+            if playerName != 'UNKNOWN HUMAN PLAYER' and self.playerSpectated == None:
+                self.playerSpectated = playerName
+            if self.playerSpectated == playerName and self.spectatePlayerID != playerId:
+                self.spectatePlayerID = playerId
             if debug: print(self.spectatePlayerID)
             if debug: print(self.playerSpectated)
             self.wasSpectating = False
@@ -301,7 +304,7 @@ class HearthstoneRPC:
             self.opponentName = None
             self.dungeonName = None
 
-    def get_player_hero(self, line):
+    def getPlayerHero(self, line):
         if self.spectating:
             index = re.search(fr'player={self.spectatePlayerID}] CardID=', line).span()[1]
         else:
@@ -317,7 +320,7 @@ class HearthstoneRPC:
             self.playerClass = cardName
         if debug: print(cardName)
 
-    def get_class_name(self):
+    def getClassName(self):
         classes = {
             'HERO_01' : 'Warrior',
             'HERO_02' : 'Shaman',
