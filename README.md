@@ -20,4 +20,4 @@ Just open it with Python 3.6 (or greater) and let it running with your game open
 [pypresence]: <https://github.com/qwertyquerty/pypresence>
 [psutil]: <https://github.com/giampaolo/psutil> 
 
-If you need help open an issue ticket or contact me on discord (Haato#0001)
+If you need help open an issue ticket or contact me on discord (Haato#0704)
