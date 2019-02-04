@@ -1,4 +1,4 @@
-version = 'v2.4'
+version = 'v2.5'
 import re
 import pypresence
 import time
@@ -99,11 +99,13 @@ class HearthstoneRPC:
         self.wasSpectating = False
 
     def stop(self):
+        '''Function to stop RPC when main loop is stopped by user'''
         print('[HSRPC] Exiting...')
         self.rpc.disconnect()
         sys.exit()
 
     def start(self):
+        '''Function to start the main loop'''
         print('[HSRPC] Initializing Hearthstone Discord rich presence...')
         while True:
             self.pidScanner()
@@ -167,6 +169,7 @@ class HearthstoneRPC:
             time.sleep(15)
 
     def pidScanner(self):
+        '''Function to scan all processes searching for the Hearthstone.exe'''
         for programs in psutil.process_iter():
             if programs.pid not in self.pids:
                 self.pids.append(programs.pid)
@@ -177,6 +180,7 @@ class HearthstoneRPC:
                 self.gamePID = None 
 
     def format_messages(self):
+        '''Function to format the rich presence description based on game mode'''
         if self.spectating:
             return 'Spectating friend'
         elif self.playing:
@@ -189,10 +193,14 @@ class HearthstoneRPC:
             return 'Idle'
     
     def resetLogger(self, length):
+        '''Function to reset the variable that stores the game log, 
+            used to fix the logger when the log is restarted'''
         if length < self.lastLine:
+            self.log = []
             self.lastLine = 0
 
     def gameScanner(self):
+        '''Function to scan Power.log and update it's variable'''
         try:
             logger = open(r'C:\Program Files (x86)\Hearthstone\Logs\Power.log', 'r')
         except FileNotFoundError:
@@ -203,6 +211,7 @@ class HearthstoneRPC:
         logger.close()
     
     def events(self):
+        '''Function to scan for game events and update rich presence core variables'''
         lastIndex = self.lastLine
         for lineIndex in range(self.lastLine, len(self.log)):
             line = self.log[lineIndex]
@@ -236,6 +245,7 @@ class HearthstoneRPC:
         self.lastLine = lastIndex
 
     def getBossName(self, line):
+        '''Function to get the boss name using regular expressions'''
         index = re.search(r'entityName=', line).span()[1]
         for letter in range(len(line)):
             if line[letter+2:letter+5] == 'id=':
@@ -243,18 +253,21 @@ class HearthstoneRPC:
                 break
 
     def getGamemode(self, line):
+        '''Function to get game mode using regular expressions'''
         index = re.search(r'GameType=', line).span()[1]
         maxIndex = len(line)
         self.gamemode = line[index : maxIndex].strip('\n')
         return
 
     def getGameType(self, line):
+        '''Function to get game type using regular expressions'''
         index = re.search(r'FormatType=', line).span()[1]
         maxIndex = len(line)
         self.type = line[index : maxIndex].strip('\n')
         return
 
     def spectate(self, line):
+        '''Function to check if the player is spectating someone'''
         if re.search(r'Begin', line) != None:
             index = re.search(r'Begin Spectating', line).span()[1]+1
             maxIndex = index+3
@@ -267,12 +280,14 @@ class HearthstoneRPC:
         return
 
     def detectGameOver(self, line):
+        '''Function that tells when the game is over'''
         self.playing = False
         self.playerClass = None
         if debug: print('Game is over!')
         return
 
     def getPlayerNames(self, line):
+        '''Function to get player name'''
         index = re.search(r'PlayerName=', line).span()[1]
         maxIndex = len(line)
         playerName = line[index : maxIndex].strip('\n')
@@ -305,6 +320,7 @@ class HearthstoneRPC:
             self.dungeonName = None
 
     def getPlayerHero(self, line):
+        '''Function to get player hero id'''
         if self.spectating:
             index = re.search(fr'player={self.spectatePlayerID}] CardID=', line).span()[1]
         else:
@@ -321,6 +337,7 @@ class HearthstoneRPC:
         if debug: print(cardName)
 
     def getClassName(self):
+        '''Function that replaces hero id with the actual hero class'''
         classes = {
             'HERO_01' : 'Warrior',
             'HERO_02' : 'Shaman',
