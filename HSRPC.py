@@ -1,4 +1,4 @@
-version = 'v2.5'
+version = 'v2.6'
 import re
 import pypresence
 import time
@@ -6,6 +6,40 @@ import psutil
 import sys
 
 debug = False
+
+classes = {
+            # Normal Heroes
+            'HERO_01' : 'Warrior',
+            'HERO_02' : 'Shaman',
+            'HERO_03' : 'Rogue',
+            'HERO_04' : 'Paladin',
+            'HERO_05' : 'Hunter',
+            'HERO_06' : 'Druid',
+            'HERO_07' : 'Warlock',
+            'HERO_08' : 'Mage',
+            'HERO_09' : 'Priest',
+            # Knights of the frozen throne expansion
+            'ICC_827' : 'Rogue',
+            'ICC_828' : 'Hunter',
+            'ICC_829' : 'Paladin',
+            'ICC_830' : 'Priest',
+            'ICC_831' : 'Warlock',
+            'ICC_832' : 'Druid',
+            'ICC_833' : 'Mage',
+            'ICC_834' : 'Warrior',
+            'ICC_481' : 'Shaman',
+            # The boomsday project Heroes
+            'BOT_238' : 'Warrior',
+            # The Witchwood Heroes
+            'GIL_504' : 'Shaman',
+            'GILA_500h3' : 'Tracker',
+            'GILA_600h' : 'Cannoneer',
+            'GILA_400h' : 'Houndmaster',
+            'GILA_900h' : 'Time-Tinker',
+            # Rastakhan Heroes
+            'TRL_065' : 'Hunter',
+            None : 'Playing Hearthstone'
+        }
 
 gameTypes = {
     'FT_WILD' : 'Wild',
@@ -149,6 +183,7 @@ class HearthstoneRPC:
                         largeImage = self.playerClass.lower()
                     else:
                         largeImage = 'menu'
+                        typeGame = None
                 else:
                     if self.playerClass != None and self.playerClass.startswith('TRLA'):
                         largeImage = 'trla_209h'
@@ -166,7 +201,7 @@ class HearthstoneRPC:
                 small_image=iconimg,
                 small_text= name,
                 start=self.timer)
-            time.sleep(15)
+            time.sleep(5)
 
     def pidScanner(self):
         '''Function to scan all processes searching for the Hearthstone.exe'''
@@ -225,6 +260,8 @@ class HearthstoneRPC:
                 self.getBossName(line)
             if re.search(r'player=2] CardID=GILA_BOSS', line) != None and re.search(r'value=HERO\n', self.log[lineIndex+2]) != None: # The Witchwood
                 self.getBossName(line)
+            if re.search(r'player=2] CardID=ICC', line) != None and re.search(r'value=HERO\n', self.log[lineIndex+2]) != None: # Knights of the frozen throne
+                self.getBossName(line)
             if re.search(r'GameType=', line) != None:
                 self.getGamemode(line)
             if re.search(r'FormatType=', line) != None:
@@ -234,10 +271,10 @@ class HearthstoneRPC:
             if re.search(r'Spectating', line) != None or re.search(r'Spectator Mode', line) != None:
                 self.spectate(line)
             if self.spectating:
-                if re.search(fr'player={self.spectatePlayerID}] CardID=', line) != None and re.search(r'value=HERO\n', self.log[lineIndex+2]) != None and (re.search(r'value=PLAY', self.log[lineIndex+4]) != None or re.search(r'value=PLAY', self.log[lineIndex+5]) != None):
+                if re.search(fr'player={self.spectatePlayerID}] CardID=', line) != None and re.search(r'value=HERO\n', self.log[lineIndex+2]) != None:
                     self.getPlayerHero(line)
             else:
-                if re.search(fr'player={self.playerID}] CardID=', line) != None and re.search(r'value=HERO\n', self.log[lineIndex+2]) != None and (re.search(r'value=PLAY', self.log[lineIndex+4]) != None or re.search(r'value=PLAY', self.log[lineIndex+5]) != None):
+                if re.search(fr'player={self.playerID}] CardID=', line) != None and re.search(r'value=HERO\n', self.log[lineIndex+2]) != None:
                     self.getPlayerHero(line)
             if re.search(r'tag=STEP value=FINAL_GAMEOVER', line) != None:
                 self.detectGameOver(line)
@@ -312,8 +349,7 @@ class HearthstoneRPC:
                 self.playerSpectated = playerName
             if self.playerSpectated == playerName and self.spectatePlayerID != playerId:
                 self.spectatePlayerID = playerId
-            if debug: print(self.spectatePlayerID)
-            if debug: print(self.playerSpectated)
+            if debug: print(f'[Debug] Spectating: {self.playerSpectated} | [{self.spectatePlayerID}]')
             self.wasSpectating = False
             self.playerClass = None
             self.opponentName = None
@@ -334,26 +370,10 @@ class HearthstoneRPC:
         elif cardName.startswith('TRLA'):
             self.dungeonName = 'Rastakhan\'s Rumble'
             self.playerClass = cardName
-        if debug: print(cardName)
+        if debug: print(f'[Debug] Hero ID: {cardName}\n[Debug] Line: {line}')
 
     def getClassName(self):
         '''Function that replaces hero id with the actual hero class'''
-        classes = {
-            'HERO_01' : 'Warrior',
-            'HERO_02' : 'Shaman',
-            'HERO_03' : 'Rogue',
-            'HERO_04' : 'Paladin',
-            'HERO_05' : 'Hunter',
-            'HERO_06' : 'Druid',
-            'HERO_07' : 'Warlock',
-            'HERO_08' : 'Mage',
-            'HERO_09' : 'Priest',
-            'GILA_500h3' : 'Tracker',
-            'GILA_600h' : 'Cannoneer',
-            'GILA_400h' : 'Houndmaster',
-            'GILA_900h' : 'Time-Tinker',
-            None : 'Playing Hearthstone'
-        }
         if self.playerClass != None and self.playerClass.startswith('TRLA'): # Rastakhan work around
             return f'{self.playerClass.split("_")[2]}'
         if self.playerClass != None and self.dungeonName == None:
