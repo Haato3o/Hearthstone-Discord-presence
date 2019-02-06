@@ -183,7 +183,6 @@ class HearthstoneRPC:
                         largeImage = self.playerClass.lower()
                     else:
                         largeImage = 'menu'
-                        typeGame = None
                 else:
                     if self.playerClass != None and self.playerClass.startswith('TRLA'):
                         largeImage = 'trla_209h'
