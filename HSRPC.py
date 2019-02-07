@@ -47,7 +47,7 @@ gameTypes = {
 }
 
 stateComplem = { 
-    'GT_VS_AI' : 'Dungeon',
+    'GT_VS_AI' : 'The Inkeeper',
     'GT_RANKED' : 'Ranked: []',
     'GT_TAVERNBRAWL' : 'Tavern Brawl',
     'GT_TUTORIAL' : 'Tutorial',
@@ -56,7 +56,7 @@ stateComplem = {
 }
 
 gameModes = {
-    'GT_VS_AI' : 'Playing versus AI',
+    'GT_VS_AI' : 'Practice mode',
     'GT_RANKED' : 'Playing versus player',
     'GT_VS_FRIEND' : 'Playing versus a friend',
     'GT_TAVERNBRAWL' : 'Doing Tavern Brawl',
@@ -260,6 +260,7 @@ class HearthstoneRPC:
             if re.search(r'player=2] CardID=GILA_BOSS', line) != None and re.search(r'value=HERO\n', self.log[lineIndex+2]) != None: # The Witchwood
                 self.getBossName(line)
             if re.search(r'player=2] CardID=ICC', line) != None and re.search(r'value=HERO\n', self.log[lineIndex+2]) != None: # Knights of the frozen throne
+                self.dungeonName = 'Knights of the Frozen Throne'
                 self.getBossName(line)
             if re.search(r'GameType=', line) != None:
                 self.getGamemode(line)
@@ -270,10 +271,10 @@ class HearthstoneRPC:
             if re.search(r'Spectating', line) != None or re.search(r'Spectator Mode', line) != None:
                 self.spectate(line)
             if self.spectating:
-                if re.search(fr'player={self.spectatePlayerID}] CardID=', line) != None and re.search(r'value=HERO\n', self.log[lineIndex+2]) != None:
+                if re.search(fr'player={self.spectatePlayerID}] CardID=', line) != None and re.search(r'value=HERO\n', self.log[lineIndex+2]) != None and (re.search(r'value=PLAY', self.log[lineIndex+4]) != None or re.search(r'value=PLAY', self.log[lineIndex+5]) != None or re.search(r'TaskCount=', self.log[lineIndex-3]) != None):
                     self.getPlayerHero(line)
             else:
-                if re.search(fr'player={self.playerID}] CardID=', line) != None and re.search(r'value=HERO\n', self.log[lineIndex+2]) != None:
+                if re.search(fr'player={self.playerID}] CardID=', line) != None and re.search(r'value=HERO\n', self.log[lineIndex+2]) != None and (re.search(r'value=PLAY', self.log[lineIndex+4]) != None or re.search(r'value=PLAY', self.log[lineIndex+5]) != None or re.search(r'TaskCount=', self.log[lineIndex-3]) != None):
                     self.getPlayerHero(line)
             if re.search(r'tag=STEP value=FINAL_GAMEOVER', line) != None:
                 self.detectGameOver(line)
@@ -287,6 +288,7 @@ class HearthstoneRPC:
             if line[letter+2:letter+5] == 'id=':
                 self.dungeonBoss = line[index:letter+1]
                 break
+        if debug: print(f'[Debug] BOSS: {self.dungeonBoss}')
 
     def getGamemode(self, line):
         '''Function to get game mode using regular expressions'''
@@ -361,13 +363,13 @@ class HearthstoneRPC:
         else:
             index = re.search(fr'player={self.playerID}] CardID=', line).span()[1]
         cardName = line[index : len(line)].strip('\n')
-        if cardName.startswith('HERO'):
-            self.playerClass = cardName
-        elif cardName.startswith('GILA'): # The witchwood dungeon
+        if cardName.startswith('GILA'): # The witchwood dungeon
             self.dungeonName = 'The Witchwood'
             self.playerClass = cardName
         elif cardName.startswith('TRLA'):
             self.dungeonName = 'Rastakhan\'s Rumble'
+            self.playerClass = cardName
+        else:
             self.playerClass = cardName
         if debug: print(f'[Debug] Hero ID: {cardName}\n[Debug] Line: {line}')
 
@@ -375,15 +377,15 @@ class HearthstoneRPC:
         '''Function that replaces hero id with the actual hero class'''
         if self.playerClass != None and self.playerClass.startswith('TRLA'): # Rastakhan work around
             return f'{self.playerClass.split("_")[2]}'
-        if self.playerClass != None and self.dungeonName == None:
+        if self.playerClass != None:
             return classes[self.playerClass[0:7]]
-        elif self.playerClass != None and self.dungeonName != None:
-            return classes[self.playerClass]
         else:
             return classes[self.playerClass]
 
 if __name__ == '__main__':
     rpc = HearthstoneRPC()
+    if '--debug' in sys.argv:
+        debug = True
     try:
         rpc.start()
     except KeyboardInterrupt:
