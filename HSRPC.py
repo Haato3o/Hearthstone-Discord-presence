@@ -77,6 +77,10 @@ images = {
 
 clientID = '528679932415442965'
 
+# Debug function
+def Log(msg):
+    if debug:
+        print(f'[DEBUG] {msg}')
 
 class richPresence:
     def __init__(self, clientId):
@@ -125,7 +129,7 @@ class HearthstoneRPC:
         self.pids = []  # PIDs of programs
         self.spammerBlock = False # Blocks repetitive messages
         self.spammerBlocker = False # Blocks other repetitive messages 
-        self.playerID = 1   # Player id (1 if first player and 2 if second player)
+        self.playerID = None   # Player id (1 if first player and 2 if second player)
         self.spectatePlayerID = 0 # Same as playerID but for the spectated player
         self.playerClass = None # Player class card name
         self.dungeonName = None # Dungeon name
@@ -144,7 +148,7 @@ class HearthstoneRPC:
         print('[HSRPC] Initializing Hearthstone Discord rich presence...')
         while True:
             self.pidScanner()
-            if self.gamePID not in self.pids:
+            if self.gamePID in self.pids:
                 self.rpc.clear()
                 if self.spammerBlocker == False:
                     print('[HSRPC] Hearthstone is closed!')
@@ -253,6 +257,8 @@ class HearthstoneRPC:
         lastIndex = self.lastLine
         for lineIndex in range(self.lastLine, len(self.log)):
             line = self.log[lineIndex]
+            if self.playerName != None and self.search(r'PlayerName=', line):
+                self.alreadyKnowPlayerName(line)
             if self.search(r'player=2] CardID=LOOTA_BOSS', line) and self.search(r'value=HERO\n', self.log[lineIndex+2]): # Kobolds and Catacombs
                 self.dungeonName = 'Kobolds & Catacombs'
                 self.getBossName(line)
@@ -264,7 +270,7 @@ class HearthstoneRPC:
                 self.getBossName(line)
             if self.search(r'player=2] CardID=GILA_BOSS', line) and self.search(r'value=HERO\n', self.log[lineIndex+2]): # The Witchwood
                 self.getBossName(line)
-            if self.search(r'player=2] CardID=ICC', line) and self.search(r'value=HERO\n', self.log[lineIndex+2]): # Knights of the frozen throne
+            if self.search(r'player=2] CardID=ICC', line) and self.search(r'value=HERO\n', self.log[lineIndex+2]) and self.search(r'zone=PLAY', line): # Knights of the frozen throne
                 self.dungeonName = 'Knights of the Frozen Throne'
                 self.getBossName(line)
             if self.search(r'GameType=', line):
@@ -272,10 +278,15 @@ class HearthstoneRPC:
             if self.search(r'FormatType=', line):
                 self.getGameType(line)
             if self.search(r'ChoiceType=MULLIGAN CountMin=0 CountMax=', line):
-                if self.search(r'Entities\[4]=\[entityName=The Coin ', self.log[lineIndex+6]):
+                CountMax = int(re.findall(r'ChoiceType=MULLIGAN CountMin=0 CountMax=([0-9])', line)[0])
+                if self.search(r'Entities\[4]=\[entityName=The Coin ', self.log[lineIndex+CountMax+1]):
                     self.playerEntity = '2'
-                elif self.search(r'Entities\[4]=\[entityName=UNKNOWN ENTITY', self.log[lineIndex+6]):
+                else:
                     self.playerEntity = '1'
+                if self.search(r'Entities\[4]=\[entityName=UNKNOWN ENTITY', self.log[lineIndex+CountMax+1]):
+                    self.playerEntity = '1'
+                else:
+                    self.playerEntity = '2'
                 self.getPlayerNames(line)
             if self.search(r'Spectating', line) or self.search(r'Spectator Mode', line):
                 self.spectate(line)
@@ -287,6 +298,7 @@ class HearthstoneRPC:
             else:
                 if self.search(fr'player={self.playerID}] CardID=', line) and self.search(r'value=HERO\n', self.log[lineIndex+2])  and (self.search(r'value=PLAY', self.log[lineIndex+4]) or self.search(r'value=PLAY', self.log[lineIndex+5])):
                     self.getPlayerHero(line)
+                    print(line)
                 if self.search(fr'BlockType=PLAY', line) and self.search(fr'player={self.playerID}', line):
                     self.getPlayerHeroMidGame(line)
             if self.search(r'tag=STEP value=FINAL_GAMEOVER', line):
@@ -303,7 +315,8 @@ class HearthstoneRPC:
             if line[letter+2:letter+5] == 'id=':
                 self.dungeonBoss = line[index:letter+1]
                 break
-        if debug: print(f'[Debug] BOSS: {self.dungeonBoss}')
+        Log(f'BOSS: {self.dungeonBoss}')
+        Log(line)
 
     def getGamemode(self, line):
         '''Function to get game mode using regular expressions'''
@@ -337,8 +350,13 @@ class HearthstoneRPC:
         self.playing = False
         self.playerClass = None
         self.dungeonName = None
-        if debug: print('Game is over!')
+        Log('Game is over!')
         return
+
+    def alreadyKnowPlayerName(self, line):
+        if self.search(fr'PlayerName={self.playerName}', line):
+            self.playerID = re.findall(r'PlayerID=([0-2])', line)[0]
+
 
     def getPlayerNames(self, line):
         '''Function to get player name'''
@@ -353,31 +371,31 @@ class HearthstoneRPC:
             if self.playerEntity == '1' and self.search('CountMax=3', line): # First player
                 self.playerID = playerId
                 self.playerName = playerName
-                if debug: print(f'[Debug] Player name: {self.playerName} id: {self.playerID} (First player)')
+                Log(f'Player name: {self.playerName} id: {self.playerID} (First player)')
             elif self.playerEntity == '2' and self.search('CountMax=5', line): # Second player
                 self.playerID = playerId
                 self.playerName = playerName
-                if debug: print(f'[Debug] Player name: {self.playerName} id: {self.playerID} (Second player)')
+                Log(f'Player name: {self.playerName} id: {self.playerID} (Second player)')
             else:
                 self.opponentName = playerName
-                if debug: print(f'[Debug] Opponent name: {self.opponentName} id: {playerId}')
+                Log(f'Opponent name: {self.opponentName} id: {playerId}')
         else:
             if playerName != 'UNKNOWN HUMAN PLAYER' and self.playerSpectated == None:
                 self.playerSpectated = playerName
             if self.playerSpectated == playerName and self.spectatePlayerID != playerId:
                 self.spectatePlayerID = playerId
-            if debug: print(f'[Debug] Spectating: {self.playerSpectated} | [{self.spectatePlayerID}]')
+            Log(f'Spectating: {self.playerSpectated} | [{self.spectatePlayerID}]')
             self.wasSpectating = False
             self.playerClass = None
             self.opponentName = None
             self.dungeonName = None
 
     def getPlayerHeroMidGame(self, line):
-        cardId = re.findall(r'cardId=([A-Z0-9_]+)', line)[0]
+        cardId = re.findall(r'cardId=([a-zA-Z0-9_]+)', line)[0]
         if cardId in classes:
             self.playerClass = cardId
-            if debug: print(f'[Debug] New Hero id: {self.playerClass}')
-            if debug: print(line)
+            Log(f'New Hero id: {self.playerClass}')
+            Log(line)
 
     def getPlayerHero(self, line):
         '''Function to get player hero id'''
@@ -394,7 +412,8 @@ class HearthstoneRPC:
             self.playerClass = cardName
         else:
             self.playerClass = cardName
-        if debug: print(f'[Debug] Hero ID: {cardName}\n[Debug] Line: {line}')
+        Log(f'Hero ID: {cardName}')
+        Log(f'Line: {line}')
 
     def getClassName(self):
         '''Function that replaces hero id with the actual hero class'''
