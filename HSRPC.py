@@ -148,7 +148,7 @@ class HearthstoneRPC:
         print('[HSRPC] Initializing Hearthstone Discord rich presence...')
         while True:
             self.pidScanner()
-            if self.gamePID in self.pids:
+            if self.gamePID not in self.pids:
                 self.rpc.clear()
                 if self.spammerBlocker == False:
                     print('[HSRPC] Hearthstone is closed!')
