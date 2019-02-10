@@ -259,6 +259,8 @@ class HearthstoneRPC:
             line = self.log[lineIndex]
             if self.playerName != None and self.search(r'PlayerName=', line):
                 self.alreadyKnowPlayerName(line)
+            if self.dungeonName != None:
+                self.alreadyKnowPlayerName(line)
             if self.search(r'player=2] CardID=LOOTA_BOSS', line) and self.search(r'value=HERO\n', self.log[lineIndex+2]): # Kobolds and Catacombs
                 self.dungeonName = 'Kobolds & Catacombs'
                 self.getBossName(line)
@@ -354,6 +356,8 @@ class HearthstoneRPC:
         return
 
     def alreadyKnowPlayerName(self, line):
+        if self.dungeonName != None:
+            self.playerID = '1'
         if self.search(fr'PlayerName={self.playerName}', line):
             self.playerID = re.findall(r'PlayerID=([0-2])', line)[0]
 
@@ -366,6 +370,8 @@ class HearthstoneRPC:
         except:
             playerName = re.findall(r'Player=([ a-zA-Z0-9]+)', line)[0].replace(' TaskList', '')
         playerId = re.findall(r'id=([1-2])', line)[0]
+        if self.dungeonName != None and playerId == self.playerID:
+            self.playerName = playerName
         if self.spectating == False:
             self.playing = True
             if (self.playerEntity == '1' and self.search('CountMax=3', line)) or playerName == self.playerName: # First player
@@ -419,7 +425,7 @@ class HearthstoneRPC:
         '''Function that replaces hero id with the actual hero class'''
         if self.playerClass != None and self.playerClass.startswith('TRLA'): # Rastakhan work around
             return f'{self.playerClass.split("_")[2]}'
-        if self.playerClass != None and f.playerClass.startswith('HERO_'):
+        if self.playerClass != None and self.playerClass.startswith('HERO_'):
             return classes[self.playerClass[0:7]]
         elif self.playerClass != None:
             return classes[self.playerClass]
