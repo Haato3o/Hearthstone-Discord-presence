@@ -301,7 +301,7 @@ class HearthstoneRPC:
                     print(line)
                 if self.search(fr'BlockType=PLAY', line) and self.search(fr'player={self.playerID}', line):
                     self.getPlayerHeroMidGame(line)
-            if self.search(r'tag=STEP value=FINAL_GAMEOVER', line):
+            if self.search(r'TAG_CHANGE Entity=GameEntity tag=STEP value=FINAL_GAMEOVER', line) and self.search(r'GameState', line):
                 self.detectGameOver(line)
             lastIndex += 1
         self.lastLine = lastIndex
@@ -368,11 +368,11 @@ class HearthstoneRPC:
         playerId = re.findall(r'id=([1-2])', line)[0]
         if self.spectating == False:
             self.playing = True
-            if self.playerEntity == '1' and self.search('CountMax=3', line): # First player
+            if (self.playerEntity == '1' and self.search('CountMax=3', line)) or playerName == self.playerName: # First player
                 self.playerID = playerId
                 self.playerName = playerName
                 Log(f'Player name: {self.playerName} id: {self.playerID} (First player)')
-            elif self.playerEntity == '2' and self.search('CountMax=5', line): # Second player
+            elif self.playerEntity == '2' and self.search('CountMax=5', line) or playerName == self.playerName: # Second player
                 self.playerID = playerId
                 self.playerName = playerName
                 Log(f'Player name: {self.playerName} id: {self.playerID} (Second player)')
@@ -419,9 +419,9 @@ class HearthstoneRPC:
         '''Function that replaces hero id with the actual hero class'''
         if self.playerClass != None and self.playerClass.startswith('TRLA'): # Rastakhan work around
             return f'{self.playerClass.split("_")[2]}'
-        if self.playerClass != None:
-            return classes[self.playerClass]
-        else:
+        if self.playerClass != None and f.playerClass.startswith('HERO_'):
+            return classes[self.playerClass[0:7]]
+        elif self.playerClass != None:
             return classes[self.playerClass]
 
 if __name__ == '__main__':
