@@ -166,7 +166,7 @@ class Presence:
             details = self.Message,
             state = self.SetStateText(),
             large_image = self.SetLargeImage(),
-            large_text = self.HeroName,
+            large_text = self.HeroName if self.PlayerHero != None else 'Main Menu',
             small_image = self.SetName()[1],
             small_text = self.SetName()[0],
             start = self.timeElapsed
