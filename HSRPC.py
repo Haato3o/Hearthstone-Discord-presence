@@ -223,7 +223,8 @@ class Presence:
             self.spammerBlock = False
 
     def GameNotRunning(self):
-        if self.spammerBlock == False: 
+        if self.spammerBlock == False:
+            self.RichPresence.Clear()
             HSRPC('Hearthstone is closed!')
             self.timeElapsed = None
             self.spammerBlock = True
@@ -448,4 +449,3 @@ if __name__ == '__main__':
         Presence.Stop()
     except pypresence.exceptions.InvalidID:
         HSRPC('Discord client id not valid! Check if Discord is open.')
-
