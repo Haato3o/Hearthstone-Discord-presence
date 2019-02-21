@@ -182,9 +182,7 @@ class Presence:
             else:
                 typeGame = None
         except Exception as e:
-            Log(e)
             typeGame = None
-        Log(typeGame)
         return typeGame
 
     def SetLargeImage(self):
@@ -255,7 +253,7 @@ class Presence:
     def GetPlayerNames(self, Event):
         playerName = self.ParsePlayerName(Event)
         playerId = self.GetPlayerIDs(Event)
-        if self.DungeonName != None and playerId == self.playerID:
+        if self.DungeonName != None and playerId == self.PlayerID:
             self.playerName = playerName
         if self.boolSpectating == False:
             self.Playing = True
@@ -297,7 +295,7 @@ class Presence:
         if HeroId.startswith('GILA'):
             self.DungeonName = 'The Witchwood'
             self.PlayerHero = HeroId
-        elif HeroId.startswith('TRLA'):
+        elif HeroId.startswith('TRLA') and self.Gamemode == 'GT_VS_AI':
             self.DungeonName = 'Rastakhan\'s Rumble'
             self.PlayerHero = HeroId
         else:
@@ -327,9 +325,10 @@ class Presence:
     def GetDungeonBossName(self, Event):
         if self.boolSpectating == False:
             self.Playing = True
-        self.DungeonName = re.findall(r'entityName=([*?! ,_a-zA-Z0-9]+) id=')[0]
-        Log(f'Boss: {self.DungeonName}')
         Log(Event)
+        self.DungeonBoss = re.findall(r'entityName=([*?! ,_a-zA-Z0-9]+) id=', Event)[0]
+        Log(f'Boss: {self.DungeonBoss}')
+        
         return
     
     def GetGamemode(self, Event):
@@ -395,7 +394,7 @@ class Presence:
                 self.PlayerID = '1'
                 self.GetDungeonBossName(Event)
                 # Rastakhan
-            if Search(r'player=2] CardID=TRLA', Event) and Search(r'value=HERO\n', self.GameEvents[i+2]):
+            if Search(r'player=2] CardID=TRLA', Event) and self.Gamemode == 'GT_VS_AI' and Search(r'value=HERO\n', self.GameEvents[i+2]):
                 self.GetDungeonBossName(Event)
                 # The Witchwood
             if Search(r'player=2] CardID=GILA_BOSS', Event) and Search(r'value=HERO\n', self.GameEvents[i+2]):
@@ -449,3 +448,4 @@ if __name__ == '__main__':
         Presence.Stop()
     except pypresence.exceptions.InvalidID:
         HSRPC('Discord client id not valid! Check if Discord is open.')
+
