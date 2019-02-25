@@ -1,14 +1,12 @@
-version = 'v2.6'
+version = 'v2.7'
 import re
 import pypresence
 import time
 import psutil
 import sys
+from lib.gameStrings import Strings
+from lib.debugger import Log
 
-
-def Log(msg):
-    if DEBUG:
-        print(f'[DEBUG] {msg}')
 
 def HSRPC(msg):
     print(f'[HSRPC] {msg}')
@@ -44,80 +42,6 @@ class Discord:
 
 class Presence:
     Client = '528679932415442965'
-    CLASSES = {
-            # Normal Heroes
-            'HERO_01' : 'Warrior',
-            'HERO_02' : 'Shaman',
-            'HERO_03' : 'Rogue',
-            'HERO_04' : 'Paladin',
-            'HERO_05' : 'Hunter',
-            'HERO_06' : 'Druid',
-            'HERO_07' : 'Warlock',
-            'HERO_08' : 'Mage',
-            'HERO_09' : 'Priest',
-            # Classic
-            'EX1_323h' : 'Warlock',
-            # Knights of the frozen throne expansion
-            'ICC_827' : 'Rogue',
-            'ICC_828' : 'Hunter',
-            'ICC_829' : 'Paladin',
-            'ICC_830' : 'Priest',
-            'ICC_831' : 'Warlock',
-            'ICC_832' : 'Druid',
-            'ICC_833' : 'Mage',
-            'ICC_834' : 'Warrior',
-            'ICC_481' : 'Shaman',
-            # The boomsday project Heroes
-            'BOT_238' : 'Warrior',
-            # The Witchwood Heroes
-            'GIL_504' : 'Shaman',
-            'GILA_500h3' : 'Tracker',
-            'GILA_600h' : 'Cannoneer',
-            'GILA_400h' : 'Houndmaster',
-            'GILA_900h' : 'Time-Tinker',
-            # Rastakhan Heroes
-            'TRL_065' : 'Hunter',
-            None : 'Playing Hearthstone'
-        }
-
-    GAMEMODES = {
-        'GT_VS_AI' : 'Practice mode',
-        'GT_RANKED' : 'Playing versus player',
-        'GT_VS_FRIEND' : 'Playing versus a friend',
-        'GT_TAVERNBRAWL' : 'Doing Tavern Brawl',
-        'GT_TUTORIAL' : 'Doing tutorial',
-        'GT_UNRANKED' : 'Playing versus player',
-        'GT_ARENA' : 'Doing Arena run'
-    }
-
-    GameTypes = {
-        'FT_WILD' : 'Wild',
-        'FT_STANDARD' : 'Standard'
-    }
-
-    StateComplem = {
-        'GT_VS_AI' : 'The Inkeeper',
-        'GT_RANKED' : 'Ranked: []',
-        'GT_TAVERNBRAWL' : 'Tavern Brawl',
-        'GT_TUTORIAL' : 'Tutorial',
-        'GT_UNRANKED' : 'Casual: []',
-        'GT_ARENA' : 'Arena'
-    }
-
-    MenuEventNames = {
-        'LOGIN' : 'Firing up the game',
-        'TUTORIAL_MESSAGE' : 'Starting the game for first time',
-        'TUTORIAL_GAME' : 'Attempting to defeat a boss',
-        'WELCOMEQUESTS' : 'Pondering new quests!',
-        'HUB' : 'Hanging out in main menu',
-        'STORE' : 'Browsing the Store',
-        'QUESTLOG' : 'Visiting the Quest Log',
-        'PACKOPENING' : 'Busting open card packs!!!!',
-        'COLLECTION' : 'Browsing the collection',
-        'DECKEDITOR' : 'Making a deck',
-        'CRAFTING' : 'Crafting some cards',
-        'PLAY_DECKPICKER' : 'Heading into Play Mode!'
-    }
 
     def __init__(self):
         self.HearthstonePath = r'C:\Program Files (x86)\Hearthstone\Logs\\'
@@ -200,7 +124,7 @@ class Presence:
                 if self.DungeonName != None:
                     typeGame = self.DungeonBoss
                 else:
-                    typeGame = Presence.StateComplem[self.Gamemode].replace('[]', Presence.GameTypes[self.Gametype])
+                    typeGame = Strings.STATE_COMPLEM[self.Gamemode].replace('[]', Strings.GAMETYPES[self.Gametype])
             else:
                 typeGame = None
         except Exception as e:
@@ -282,7 +206,7 @@ class Presence:
         time.sleep(5)
 
     def _GAMEMODE(self, name):
-        return Presence.GAMEMODES[name]
+        return Strings.GAMEMODES[name]
 
     def AlreadyKnowPlayerName(self, Event):
         if self.DungeonName != None:
@@ -333,7 +257,7 @@ class Presence:
 
     def GetPlayerHeroMidGame(self, Event):
         cardId = re.findall(r'cardId=([a-zA-Z0-9_]+)', Event)[0]
-        if cardId in Presence.CLASSES:
+        if cardId in Strings.HERO:
             self.PlayerHero = cardId
             self.GetHeroName(Event)
             Log(f'New Hero id: {self.PlayerHero}')
@@ -374,7 +298,7 @@ class Presence:
             self.InMainMenu = True
             self.Gametype = None
             self.MainMenu()
-            return Presence.MenuEventNames[self.MenuPresence]
+            return Strings.PRESENCE_MESSAGES[self.MenuPresence]
 
     def GetDungeonBossName(self, Event):
         if self.boolSpectating == False:
