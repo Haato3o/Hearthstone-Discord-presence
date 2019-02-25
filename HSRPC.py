@@ -104,10 +104,29 @@ class Presence:
         'GT_ARENA' : 'Arena'
     }
 
+    MenuEventNames = {
+        'LOGIN' : 'Firing up the game',
+        'TUTORIAL_MESSAGE' : 'Starting the game for first time',
+        'TUTORIAL_GAME' : 'Attempting to defeat a boss',
+        'WELCOMEQUESTS' : 'Pondering new quests!',
+        'HUB' : 'Hanging out in main menu',
+        'STORE' : 'Browsing the Store',
+        'QUESTLOG' : 'Visiting the Quest Log',
+        'PACKOPENING' : 'Busting open card packs!!!!',
+        'COLLECTION' : 'Browsing the collection',
+        'DECKEDITOR' : 'Making a deck',
+        'CRAFTING' : 'Crafting some cards',
+        'PLAY_DECKPICKER' : 'Heading into Play Mode!'
+    }
+
     def __init__(self):
+        self.HearthstonePath = r'C:\Program Files (x86)\Hearthstone\Logs\\'
         # Rich Presence
         self.RichPresence = Discord(Presence.Client)
         self.GameEvents = []
+        self.MainMenuEvents = []
+        self.LastEventMainMenu = 0
+        self.MenuPresence = None
         self.boolSpectating = False
         # Player
         self.PlayerName = None
@@ -131,6 +150,7 @@ class Presence:
         self.wasSpectating = False
         self.PlayerEntity = None
         self.HeroName = None
+        self.InMainMenu = False
 
     def SearchHearthstoneProcess(self):
         for programs in psutil.process_iter():
@@ -156,6 +176,8 @@ class Presence:
                 self.GameRunning()
                 self.PowerLogScanner()
                 self.EventsHandler()
+                if self.InMainMenu:
+                    self.MainMenu()
                 self.lastMessage = self.Message
                 self.Message = self.GetDescriptionText()
                 self.UpdatePresence()
@@ -184,6 +206,36 @@ class Presence:
         except Exception as e:
             typeGame = None
         return typeGame
+
+    def MainMenu(self):
+        self.LoadingScreenScanner()
+        self.MainMenuPresence()
+
+    def ResetMenuEvents(self, length):
+        if length < self.LastEventMainMenu:
+            self.MainMenuEvents = []
+            self.LastEventMainMenu = 0
+        return
+
+    def LoadingScreenScanner(self):
+        file = open(fr'{self.HearthstonePath}LoadingScreen.log', 'r')
+        self.MainMenuEvents = file.readlines()
+        self.ResetMenuEvents(len(self.MainMenuEvents))
+        file.close()
+
+    def MainMenuPresence(self):
+        lastEvent = self.LastEventMainMenu
+        for line in range(self.LastEventMainMenu, len(self.MainMenuEvents)):
+            Event = self.MainMenuEvents[line]
+            if Search('currMode', Event):
+                self.ParseMenuPresence(Event)
+            lastEvent += 1
+        self.LastEventMainMenu = lastEvent
+
+    def ParseMenuPresence(self, event):
+        Event = re.findall(r'currMode=([_A-Z]+)\n', event)
+        Log(f'Main menu event: {Event[0]}')
+        self.MenuPresence = Event[0]
 
     def SetLargeImage(self):
         try:
@@ -285,7 +337,7 @@ class Presence:
             self.PlayerHero = cardId
             self.GetHeroName(Event)
             Log(f'New Hero id: {self.PlayerHero}')
-            Log(Event)
+            #Log(Event)
 
     def GetPlayerHero(self, Event):
         if self.boolSpectating:
@@ -302,11 +354,11 @@ class Presence:
             self.PlayerHero = HeroId
         self.GetHeroName(Event)
         Log(f'Hero ID: {HeroId}')
-        Log(f'Event: {Event}')
+        #Log(f'Event: {Event.strip('\n')}')
 
     def GetHeroName(self, Event):
         if re.search('UNKNOWN ENTITY', Event) == None:
-            Log(Event)
+            #Log(Event)
             self.HeroName = re.findall(r'entityName=([!\',._A-Za-z0-9- *?]+) id', Event)[0]
             Log(f'Hero name: {self.HeroName}')
 
@@ -319,13 +371,15 @@ class Presence:
             else:
                 return f'{self._GAMEMODE(self.Gamemode)}'
         elif self.Playing == False:
+            self.InMainMenu = True
             self.Gametype = None
-            return 'Idle'
+            self.MainMenu()
+            return Presence.MenuEventNames[self.MenuPresence]
 
     def GetDungeonBossName(self, Event):
         if self.boolSpectating == False:
             self.Playing = True
-        Log(Event)
+        #Log(Event)
         self.DungeonBoss = re.findall(r'entityName=([*?! ,_a-zA-Z0-9]+) id=', Event)[0]
         Log(f'Boss: {self.DungeonBoss}')
         
@@ -333,6 +387,8 @@ class Presence:
     
     def GetGamemode(self, Event):
         self.Gamemode = re.findall(r'GameType=([_A-Z]+)', Event)[0]
+        Log('=== NEW GAME ===')
+        self.InMainMenu = False
         Log(f'Gamemode: {self.Gamemode}')
         return
 
@@ -356,7 +412,7 @@ class Presence:
         self.PlayerHero = None
         self.HeroName = None
         self.DungeonName = None
-        Log('Game is over!')
+        Log('Game is over!\n')
         return
 
     def ResetGameEvents(self, length):
@@ -367,7 +423,7 @@ class Presence:
 
     def PowerLogScanner(self):
         try:
-            PowerLog = open(r'C:\Program Files (x86)\Hearthstone\Logs\Power.log', 'r')
+            PowerLog = open(fr'{self.HearthstonePath}Power.log', 'r')
         except FileNotFoundError:
             HSRPC('Power.log file not found!')
             self.Stop()
