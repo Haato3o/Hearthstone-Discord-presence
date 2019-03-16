@@ -5,7 +5,7 @@ import time
 import psutil
 import sys
 from lib.gameStrings import Strings
-from lib.debugger import Log
+from lib.debugger import *
 
 
 def HSRPC(msg):
@@ -93,7 +93,7 @@ class Presence:
         self.RichPresence.Start()
         while True:
             self.SearchHearthstoneProcess()
-            if self.GamePID == None:
+            if self.GamePID != None:
                 self.GameNotRunning()
                 continue
             else:
@@ -108,7 +108,8 @@ class Presence:
                 time.sleep(5)
 
     def UpdatePresence(self):
-        self.RichPresence.Update(
+        return
+        '''self.RichPresence.Update(
             details = self.Message,
             state = self.SetStateText(),
             large_image = self.SetLargeImage(),
@@ -116,7 +117,7 @@ class Presence:
             small_image = self.SetName()[1],
             small_text = self.SetName()[0],
             start = self.timeElapsed
-        )
+        )'''
 
     def SetStateText(self):
         try:
@@ -211,6 +212,10 @@ class Presence:
     def AlreadyKnowPlayerName(self, Event):
         if self.DungeonName != None:
             self.PlayerID = '1'
+        if self.boolSpectating:
+            if Search(fr'PlayerName={self.PlayerSpectatedName}', Event):
+                self.SpectatePlayerID = re.findall(r'PlayerID=([0-2])', Event)[0]
+                return
         if Search(fr'PlayerName={self.PlayerName}', Event):
             self.PlayerID = re.findall(r'PlayerID=([0-2])', Event)[0]
         return
@@ -245,18 +250,22 @@ class Presence:
                 self.OpponentName = playerName
                 Log(f'Opponent name: {self.OpponentName} id: {playerId}')
         else:
+            #Log(Event)
             if playerName != 'UNKNOWN HUMAN PLAYER' and self.PlayerSpectatedName == None:
                 self.PlayerSpectatedName = playerName
             if self.PlayerSpectatedName and self.SpectatePlayerID != playerId:
                 self.SpectatePlayerID = playerId
-            Log(f'Spectating: {self.PlayerSpectatedName} id: {self.SpectatePlayerID}')
+                Log(f'Spectating: {self.PlayerSpectatedName} id: {self.SpectatePlayerID}')
             self.wasSpectating = False
             self.PlayerHero = None
             self.OpponentName = None
             self.DungeonName = None
 
     def GetPlayerHeroMidGame(self, Event):
-        cardId = re.findall(r'cardId=([a-zA-Z0-9_]+)', Event)[0]
+        try:
+            cardId = re.findall(r'cardId=([a-zA-Z0-9_]+)', Event)[0]
+        except:
+            return
         if cardId in Strings.HERO:
             self.PlayerHero = cardId
             self.GetHeroName(Event)
@@ -298,7 +307,12 @@ class Presence:
             self.InMainMenu = True
             self.Gametype = None
             self.MainMenu()
-            return Strings.PRESENCE_MESSAGES[self.MenuPresence]
+            try:
+                Message = Strings.PRESENCE_MESSAGES[self.MenuPresence]
+            except KeyError:
+                Log(f'MENU EVENT NOT MAPPED YET: {self.MenuPresence}')
+                Message = Strings.PRESENCE_MESSAGES['HUB']
+            return Message
 
     def GetDungeonBossName(self, Event):
         if self.boolSpectating == False:
@@ -323,12 +337,14 @@ class Presence:
 
     def Spectate(self, Event):
         if Search(r'Begin', Event):
+            Log("BEGIN SPECTATING")
             self.boolSpectating = True
             self.PlayerHero = None
             self.DungeonBoss = None
         elif Search(r'End', Event):
-             self.wasSpectating = True
-             self.boolSpectating = False   
+            Log("END SPECTATING")
+            self.wasSpectating = True
+            self.boolSpectating = False   
         return
 
     def DetectGameOver(self, Event):
@@ -363,6 +379,8 @@ class Presence:
                 self.AlreadyKnowPlayerName(Event)
             if self.DungeonName != None:
                 self.AlreadyKnowPlayerName(Event)
+            if self.boolSpectating and self.PlayerSpectatedName != None and Search('PlayerName=', Event):
+                self.AlreadyKnowPlayerName(Event)
             # Dungeons
                 # Kobolds & Catacombs
             if Search(r'player=2] CardID=LOOTA_BOSS', Event) and Search(r'values=HERO\n', self.GameEvents[i+2]):
@@ -391,15 +409,15 @@ class Presence:
             # Player events
             if Search(r'ChoiceType=MULLIGAN CountMin=0 CountMax=', Event):
                 CountMax = int(re.findall(r'ChoiceType=MULLIGAN CountMin=0 CountMax=([0-9])', Event)[0])
-                if Search(r'Entities\[4]=\[entityName=The Coin ', self.GameEvents[i+CountMax+1]):
+                #Log(f'Event: {self.GameEvents[i+CountMax+1]}')
+                if CountMax == 5 and Search(r'Entities\[4]=\[entityName=The Coin ', self.GameEvents[i+CountMax+1]):
                     self.PlayerEntity = '2'
                 else:
                     self.PlayerEntity = '1'
-                if Search(r'Entities\[4]=\[entityName=UNKNOWN ENTITY', self.GameEvents[i+CountMax+1]):
+                if CountMax == 5 and Search(r'Entities\[4]=\[entityName=UNKNOWN ENTITY', self.GameEvents[i+CountMax+1]):
                     self.PlayerEntity = '1'
-                else:
-                    self.PlayerEntity = '2'
                 self.GetPlayerNames(Event)
+                
             if Search(r'Spectating', Event) or Search(r'Spectator Mode', Event):
                 self.Spectate(Event)
             if self.boolSpectating:
@@ -419,13 +437,12 @@ class Presence:
 
 if __name__ == '__main__':
     Presence = Presence()
-    DEBUG = False
+    config.DEBUG = False
     if '--debug' in sys.argv:
-        DEBUG = True
+        config.DEBUG = True
     try:
         Presence.Start()
     except KeyboardInterrupt:
         Presence.Stop()
     except pypresence.exceptions.InvalidID:
         HSRPC('Discord client id not valid! Check if Discord is open.')
-
