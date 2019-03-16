@@ -93,7 +93,7 @@ class Presence:
         self.RichPresence.Start()
         while True:
             self.SearchHearthstoneProcess()
-            if self.GamePID != None:
+            if self.GamePID == None:
                 self.GameNotRunning()
                 continue
             else:
