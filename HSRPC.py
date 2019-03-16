@@ -108,8 +108,7 @@ class Presence:
                 time.sleep(5)
 
     def UpdatePresence(self):
-        return
-        '''self.RichPresence.Update(
+        self.RichPresence.Update(
             details = self.Message,
             state = self.SetStateText(),
             large_image = self.SetLargeImage(),
@@ -117,7 +116,7 @@ class Presence:
             small_image = self.SetName()[1],
             small_text = self.SetName()[0],
             start = self.timeElapsed
-        )'''
+        )
 
     def SetStateText(self):
         try:
@@ -446,3 +445,4 @@ if __name__ == '__main__':
         Presence.Stop()
     except pypresence.exceptions.InvalidID:
         HSRPC('Discord client id not valid! Check if Discord is open.')
+
