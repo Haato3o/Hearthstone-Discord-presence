@@ -97,7 +97,7 @@ class Presence:
         self.RichPresence.Start()
         while True:
             self.SearchHearthstoneProcess()
-            if self.GamePID != None:
+            if self.GamePID == None:
                 self.GameNotRunning()
                 continue
             else:
@@ -112,9 +112,6 @@ class Presence:
                 time.sleep(5)
 
     def UpdatePresence(self):
-        return
-
-    def _UpdatePresence(self):
         self.RichPresence.Update(
             details = self.Message,
             state = self.SetStateText(),
