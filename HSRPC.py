@@ -4,8 +4,12 @@ import pypresence
 import time
 import psutil
 import sys
-from lib.gameStrings import Strings
-from lib.debugger import *
+try:
+    from lib.gameStrings import Strings
+    from lib.debugger import *
+except ImportError:
+    from gameStrings import Strings
+    from debugger import *
 
 
 def HSRPC(msg):
@@ -93,7 +97,7 @@ class Presence:
         self.RichPresence.Start()
         while True:
             self.SearchHearthstoneProcess()
-            if self.GamePID == None:
+            if self.GamePID != None:
                 self.GameNotRunning()
                 continue
             else:
@@ -108,6 +112,9 @@ class Presence:
                 time.sleep(5)
 
     def UpdatePresence(self):
+        return
+
+    def _UpdatePresence(self):
         self.RichPresence.Update(
             details = self.Message,
             state = self.SetStateText(),
@@ -213,6 +220,7 @@ class Presence:
             self.PlayerID = '1'
         if self.boolSpectating:
             if Search(fr'PlayerName={self.PlayerSpectatedName}', Event):
+                Log(f"Spectating: {self.PlayerSpectatedName} id: {self.SpectatePlayerID}")
                 self.SpectatePlayerID = re.findall(r'PlayerID=([0-2])', Event)[0]
                 return
         if Search(fr'PlayerName={self.PlayerName}', Event):
@@ -237,28 +245,30 @@ class Presence:
             self.playerName = playerName
         if self.boolSpectating == False:
             self.Playing = True
-            if (self.PlayerEntity == '1' and Search('CountMax=3', Event)) or playerName == self.PlayerName:
-                self.PlayerID = playerId
-                self.PlayerName = playerName
-                Log(f'Player name: {self.PlayerName} id: {self.PlayerID} (First Player)')
+            if (self.PlayerEntity == '1' and Search('CountMax=5', Event)) or playerName == self.PlayerName:
+                self.OpponentName = playerName
+                Log(f'Opponent name: {self.OpponentName} id: {playerId}')
             elif self.PlayerEntity == '2' and Search('CountMax=5', Event) or playerName == self.PlayerName:
                 self.PlayerID = playerId
                 self.PlayerName = playerName
                 Log(f'Player name: {self.PlayerName} id: {self.PlayerID} (Second Player)')
             else:
-                self.OpponentName = playerName
-                Log(f'Opponent name: {self.OpponentName} id: {playerId}')
+                self.PlayerID = playerId
+                self.PlayerName = playerName
+                Log(f'Player name: {self.PlayerName} id: {self.PlayerID}')
         else:
-            #Log(Event)
-            if playerName != 'UNKNOWN HUMAN PLAYER' and self.PlayerSpectatedName == None:
-                self.PlayerSpectatedName = playerName
-            if self.PlayerSpectatedName and self.SpectatePlayerID != playerId:
+            if (self.PlayerEntity == '1' and Search('CountMax=5', Event)) and self.PlayerSpectatedName != None:
+                self.OpponentName = playerName
+                Log(f'Opponent: {self.OpponentName} id: {playerId}')
+            elif self.PlayerEntity == '2' and Search('CountMax=5', Event) and self.PlayerSpectatedName != None:
                 self.SpectatePlayerID = playerId
+                self.PlayerSpectatedName = playerName
+                Log(f'Spectating: {self.PlayerSpectatedName} id: {self.SpectatePlayerID}')
+            else:
+                self.SpectatePlayerID = playerId
+                self.PlayerSpectatedName = playerName
                 Log(f'Spectating: {self.PlayerSpectatedName} id: {self.SpectatePlayerID}')
             self.wasSpectating = False
-            self.PlayerHero = None
-            self.OpponentName = None
-            self.DungeonName = None
 
     def GetPlayerHeroMidGame(self, Event):
         try:
@@ -340,10 +350,12 @@ class Presence:
             self.boolSpectating = True
             self.PlayerHero = None
             self.DungeonBoss = None
+            self.PlayerEntity = None
         elif Search(r'End', Event):
             Log("END SPECTATING")
             self.wasSpectating = True
-            self.boolSpectating = False   
+            self.boolSpectating = False
+            self.PlayerEntity = None
         return
 
     def DetectGameOver(self, Event):
@@ -406,17 +418,15 @@ class Presence:
             if Search(r'FormatType=', Event):
                 self.GetGameType(Event)
             # Player events
-            if Search(r'ChoiceType=MULLIGAN CountMin=0 CountMax=', Event):
+            if Search(r'ChoiceType=MULLIGAN CountMin=0 CountMax=', Event) and self.PlayerEntity == None:
                 CountMax = int(re.findall(r'ChoiceType=MULLIGAN CountMin=0 CountMax=([0-9])', Event)[0])
-                #Log(f'Event: {self.GameEvents[i+CountMax+1]}')
-                if CountMax == 5 and Search(r'Entities\[4]=\[entityName=The Coin ', self.GameEvents[i+CountMax+1]):
+                if CountMax == 5 and Search(r'Entities\[4]=\[entityName=The Coin', self.GameEvents[i+CountMax+1]):
                     self.PlayerEntity = '2'
+                elif CountMax == 5 and Search(r'Entities\[4]=\[entityName=UNKNOWN ENTITY', self.GameEvents[i+CountMax+1]):
+                    self.PlayerEntity = '1'
                 else:
-                    self.PlayerEntity = '1'
-                if CountMax == 5 and Search(r'Entities\[4]=\[entityName=UNKNOWN ENTITY', self.GameEvents[i+CountMax+1]):
-                    self.PlayerEntity = '1'
+                    self.PlayerEntity = None
                 self.GetPlayerNames(Event)
-                
             if Search(r'Spectating', Event) or Search(r'Spectator Mode', Event):
                 self.Spectate(Event)
             if self.boolSpectating:
