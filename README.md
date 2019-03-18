@@ -1,6 +1,6 @@
 [![pypresence](https://img.shields.io/badge/using-pypresence-00bb88.svg?style=for-the-badge&logo=discord&logoWidth=20)](https://github.com/qwertyquerty/pypresence)
 
-# Hearthstone-Discord-Presence v2.6
+# Hearthstone-Discord-Presence v2.7
 Hearthstone Discord rich presence made in python
 
 # How to use
