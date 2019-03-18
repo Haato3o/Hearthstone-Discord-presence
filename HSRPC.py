@@ -177,7 +177,7 @@ class Presence:
                     largeImage = 'trla_209h'
                 else:
                     largeImage = self.PlayerHero.lower()
-        except:
+        except Exception as e:
             largeImage = 'menu'
         return largeImage
 
@@ -220,8 +220,10 @@ class Presence:
                 Log(f"Spectating: {self.PlayerSpectatedName} id: {self.SpectatePlayerID}")
                 self.SpectatePlayerID = re.findall(r'PlayerID=([0-2])', Event)[0]
                 return
-        if Search(fr'PlayerName={self.PlayerName}', Event):
-            self.PlayerID = re.findall(r'PlayerID=([0-2])', Event)[0]
+        else:
+            if Search(fr'PlayerName={self.PlayerName}', Event):
+                self.PlayerID = re.findall(r'PlayerID=([0-2])', Event)[0]
+                self.Playing = True
         return
 
     def GetPlayerIDs(self, Event):
@@ -452,4 +454,3 @@ if __name__ == '__main__':
         Presence.Stop()
     except pypresence.exceptions.InvalidID:
         HSRPC('Discord client id not valid! Check if Discord is open.')
-
