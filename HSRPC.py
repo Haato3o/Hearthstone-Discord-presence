@@ -452,5 +452,5 @@ if __name__ == '__main__':
         Presence.Start()
     except KeyboardInterrupt:
         Presence.Stop()
-    except pypresence.exceptions.InvalidID:
+    except pypresence.exceptions.InvalidPipe:
         HSRPC('Discord client id not valid! Check if Discord is open.')
