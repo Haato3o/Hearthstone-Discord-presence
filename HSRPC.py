@@ -4,6 +4,8 @@ import pypresence
 import time
 import psutil
 import sys
+from threading import Thread
+
 try:
     from lib.gameStrings import Strings
     from lib.debugger import *
@@ -93,6 +95,7 @@ class Presence:
         sys.exit()
 
     def Start(self):
+        HSRPC(f'HEARTHSTONE DISCORD RICH PRESENCE | VERSION: {version}')
         HSRPC('Initializing Hearthstone Discord Rich Presence...')
         self.RichPresence.Start()
         while True:
@@ -334,6 +337,7 @@ class Presence:
     def GetGamemode(self, Event):
         self.Gamemode = re.findall(r'GameType=([_A-Z]+)', Event)[0]
         Log('=== NEW GAME ===')
+        self.SetTimer()
         self.InMainMenu = False
         Log(f'Gamemode: {self.Gamemode}')
         return
@@ -363,6 +367,7 @@ class Presence:
         self.HeroName = None
         self.DungeonName = None
         Log('Game is over!\n')
+        self.timeElapsed = None
         return
 
     def ResetGameEvents(self, length):
@@ -427,6 +432,7 @@ class Presence:
                     self.PlayerEntity = None
                 self.GetPlayerNames(Event)
             if Search(r'Spectating', Event) or Search(r'Spectator Mode', Event):
+                Log(Event)
                 self.Spectate(Event)
             if self.boolSpectating:
                 if Search(fr'player={self.SpectatePlayerID}] CardID=', Event) and Search(r'value=HERO\n', self.GameEvents[i+2]) and (Search(r'value=PLAY', self.GameEvents[i+4]) or Search(r'value=PLAY', self.GameEvents[i+5])):
@@ -453,4 +459,4 @@ if __name__ == '__main__':
     except KeyboardInterrupt:
         Presence.Stop()
     except pypresence.exceptions.InvalidPipe:
-        HSRPC('Discord client id not valid! Check if Discord is open.')
+        HSRPC('Discord is not running! Start Discord before HSRPC!')
